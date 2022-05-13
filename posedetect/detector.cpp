@@ -1,3 +1,7 @@
+#define OPENPOSE_FLAGS_DISABLE_POSE
+// #define OPENPOSE_FLAGS_DISABLE_DISPLAY
+#include <openpose/flags.hpp>
+
 #include "detector.h"
 
 KeyPoint &Pose25::operator[](BodyPart bp)
@@ -43,11 +47,11 @@ Detector::Detector(): opWrapper(op::ThreadManagerMode::Asynchronous)
 
 }
 
-void Detector::start(bool disable_multi_thread)
+void Detector::start()
 {
     op::opLog("Starting OpenPose...", op::Priority::High);
 
-    if (disable_multi_thread)
+    if (FLAGS_disable_multi_thread)
         opWrapper.disableMultiThreading();
 
     op::opLog("Starting thread(s)...", op::Priority::High);

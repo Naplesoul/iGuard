@@ -1,10 +1,6 @@
 #include <opencv2/opencv.hpp>
 #include <gflags/gflags.h>
 
-#define OPENPOSE_FLAGS_DISABLE_POSE
-#define OPENPOSE_FLAGS_DISABLE_DISPLAY
-#include <openpose/flags.hpp>
-
 #include "detector.h"
 
 DEFINE_string(image_path, "./data/test1.jpeg",
@@ -16,7 +12,7 @@ int main(int argc, char *argv[])
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     Detector detector;
-    detector.start(FLAGS_disable_multi_thread);
+    detector.start();
 
     const cv::Mat cvImageToProcess = cv::imread(FLAGS_image_path);
     for (;;) {
