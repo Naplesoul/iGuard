@@ -4,7 +4,7 @@
 // Third-party dependencies
 #include <opencv2/opencv.hpp>
 // Command-line user interface
-#define OPENPOSE_FLAGS_DISABLE_POSE
+// #define OPENPOSE_FLAGS_DISABLE_POSE
 #include <openpose/flags.hpp>
 // OpenPose dependencies
 #include <openpose/headers.hpp>
@@ -31,7 +31,7 @@ void display(const std::shared_ptr<std::vector<std::shared_ptr<op::Datum>>>& dat
             const cv::Mat cvMat = OP_OP2CVCONSTMAT(datumsPtr->at(0)->cvOutputData);
             if (!cvMat.empty())
             {
-                cv::imshow(OPEN_POSE_NAME_AND_VERSION + " - Tutorial C++ API", cvMat);
+                cv::imwrite("./res.jpg", cvMat);
                 cv::waitKey(0);
             }
             else
@@ -54,7 +54,7 @@ void printKeypoints(const std::shared_ptr<std::vector<std::shared_ptr<op::Datum>
         if (datumsPtr != nullptr && !datumsPtr->empty())
         {
             // Alternative 1
-            op::opLog("Body keypoints: " + datumsPtr->at(0)->poseKeypoints.toString(), op::Priority::High);
+            // op::opLog("Body keypoints: " + datumsPtr->at(0)->poseKeypoints.toString(), op::Priority::High);
 
             // // Alternative 2
             // op::opLog(datumsPtr->at(0)->poseKeypoints, op::Priority::High);
@@ -63,21 +63,21 @@ void printKeypoints(const std::shared_ptr<std::vector<std::shared_ptr<op::Datum>
             // std::cout << datumsPtr->at(0)->poseKeypoints << std::endl;
 
             // // Alternative 4 - Accessing each element of the keypoints
-            // op::opLog("\nKeypoints:", op::Priority::High);
-            // const auto& poseKeypoints = datumsPtr->at(0)->poseKeypoints;
-            // op::opLog("Person pose keypoints:", op::Priority::High);
-            // for (auto person = 0 ; person < poseKeypoints.getSize(0) ; person++)
-            // {
-            //     op::opLog("Person " + std::to_string(person) + " (x, y, score):", op::Priority::High);
-            //     for (auto bodyPart = 0 ; bodyPart < poseKeypoints.getSize(1) ; bodyPart++)
-            //     {
-            //         std::string valueToPrint;
-            //         for (auto xyscore = 0 ; xyscore < poseKeypoints.getSize(2) ; xyscore++)
-            //             valueToPrint += std::to_string(   poseKeypoints[{person, bodyPart, xyscore}]   ) + " ";
-            //         op::opLog(valueToPrint, op::Priority::High);
-            //     }
-            // }
-            // op::opLog(" ", op::Priority::High);
+            op::opLog("\nKeypoints:", op::Priority::High);
+            const auto& poseKeypoints = datumsPtr->at(0)->poseKeypoints;
+            op::opLog("Person pose keypoints:", op::Priority::High);
+            for (auto person = 0 ; person < poseKeypoints.getSize(0) ; person++)
+            {
+                op::opLog("Person " + std::to_string(person) + " (x, y, score):", op::Priority::High);
+                for (auto bodyPart = 0 ; bodyPart < poseKeypoints.getSize(1) ; bodyPart++)
+                {
+                    std::string valueToPrint;
+                    for (auto xyscore = 0 ; xyscore < poseKeypoints.getSize(2) ; xyscore++)
+                        valueToPrint += std::to_string(   poseKeypoints[{person, bodyPart, xyscore}]   ) + " ";
+                    op::opLog(valueToPrint, op::Priority::High);
+                }
+            }
+            op::opLog(" ", op::Priority::High);
         }
         else
             op::opLog("Nullptr or empty datumsPtr found.", op::Priority::High);
@@ -99,8 +99,8 @@ int tutorialApiCpp()
         op::opLog("Configuring OpenPose...", op::Priority::High);
         op::Wrapper opWrapper{op::ThreadManagerMode::Asynchronous};
         // Set to single-thread (for sequential processing and/or debugging and/or reducing latency)
-        if (FLAGS_disable_multi_thread)
-            opWrapper.disableMultiThreading();
+        // if (FLAGS_disable_multi_thread)
+        //     opWrapper.disableMultiThreading();
 
         // Starting OpenPose
         op::opLog("Starting thread(s)...", op::Priority::High);
