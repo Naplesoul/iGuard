@@ -4,7 +4,7 @@
 // Third-party dependencies
 #include <opencv2/opencv.hpp>
 // Command-line user interface
-// #define OPENPOSE_FLAGS_DISABLE_POSE
+#define OPENPOSE_FLAGS_DISABLE_POSE
 #include <openpose/flags.hpp>
 // OpenPose dependencies
 #include <openpose/headers.hpp>

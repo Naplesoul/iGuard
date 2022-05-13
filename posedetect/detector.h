@@ -45,7 +45,7 @@ private:
 public:
     Detector();
 
-    void start(bool disable_multi_thread);
+    void start();
     void stop();
 
     std::vector<Pose25> &detect(const cv::Mat &cvImageToProcess);
