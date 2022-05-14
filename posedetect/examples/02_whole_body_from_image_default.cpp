@@ -1,5 +1,5 @@
-// ----------------------------- OpenPose C++ API Tutorial - Example 1 - Body from image -----------------------------
-// It reads an image, process it, and displays it with the pose keypoints.
+// -------------------------- OpenPose C++ API Tutorial - Example 2 - Whole body from image --------------------------
+// It reads an image, process it, and displays it with the pose, hand, and face keypoints.
 
 // Third-party dependencies
 #include <opencv2/opencv.hpp>
@@ -11,7 +11,7 @@
 
 // Custom OpenPose flags
 // Producer
-DEFINE_string(image_path, "./WechatIMG4.jpeg",
+DEFINE_string(image_path, "examples/media/COCO_val2014_000000000241.jpg",
     "Process an image. Read all standard formats (jpg, png, bmp, etc.).");
 // Display
 DEFINE_bool(no_display,                 false,
@@ -31,7 +31,7 @@ void display(const std::shared_ptr<std::vector<std::shared_ptr<op::Datum>>>& dat
             const cv::Mat cvMat = OP_OP2CVCONSTMAT(datumsPtr->at(0)->cvOutputData);
             if (!cvMat.empty())
             {
-                cv::imwrite("./res.jpg", cvMat);
+                cv::imshow(OPEN_POSE_NAME_AND_VERSION + " - Tutorial C++ API", cvMat);
                 cv::waitKey(0);
             }
             else
@@ -53,31 +53,10 @@ void printKeypoints(const std::shared_ptr<std::vector<std::shared_ptr<op::Datum>
         // Example: How to use the pose keypoints
         if (datumsPtr != nullptr && !datumsPtr->empty())
         {
-            // Alternative 1
-            // op::opLog("Body keypoints: " + datumsPtr->at(0)->poseKeypoints.toString(), op::Priority::High);
-
-            // // Alternative 2
-            // op::opLog(datumsPtr->at(0)->poseKeypoints, op::Priority::High);
-
-            // // Alternative 3
-            // std::cout << datumsPtr->at(0)->poseKeypoints << std::endl;
-
-            // // Alternative 4 - Accessing each element of the keypoints
-            op::opLog("\nKeypoints:", op::Priority::High);
-            const auto& poseKeypoints = datumsPtr->at(0)->poseKeypoints;
-            op::opLog("Person pose keypoints:", op::Priority::High);
-            for (auto person = 0 ; person < poseKeypoints.getSize(0) ; person++)
-            {
-                op::opLog("Person " + std::to_string(person) + " (x, y, score):", op::Priority::High);
-                for (auto bodyPart = 0 ; bodyPart < poseKeypoints.getSize(1) ; bodyPart++)
-                {
-                    std::string valueToPrint;
-                    for (auto xyscore = 0 ; xyscore < poseKeypoints.getSize(2) ; xyscore++)
-                        valueToPrint += std::to_string(   poseKeypoints[{person, bodyPart, xyscore}]   ) + " ";
-                    op::opLog(valueToPrint, op::Priority::High);
-                }
-            }
-            op::opLog(" ", op::Priority::High);
+            op::opLog("Body keypoints: " + datumsPtr->at(0)->poseKeypoints.toString(), op::Priority::High);
+            op::opLog("Face keypoints: " + datumsPtr->at(0)->faceKeypoints.toString(), op::Priority::High);
+            op::opLog("Left hand keypoints: " + datumsPtr->at(0)->handKeypoints[0].toString(), op::Priority::High);
+            op::opLog("Right hand keypoints: " + datumsPtr->at(0)->handKeypoints[1].toString(), op::Priority::High);
         }
         else
             op::opLog("Nullptr or empty datumsPtr found.", op::Priority::High);
@@ -98,9 +77,12 @@ int tutorialApiCpp()
         // Configuring OpenPose
         op::opLog("Configuring OpenPose...", op::Priority::High);
         op::Wrapper opWrapper{op::ThreadManagerMode::Asynchronous};
+        // Add hand and face
+        opWrapper.configure(op::WrapperStructFace{true});
+        opWrapper.configure(op::WrapperStructHand{true});
         // Set to single-thread (for sequential processing and/or debugging and/or reducing latency)
-        // if (FLAGS_disable_multi_thread)
-        //     opWrapper.disableMultiThreading();
+        if (FLAGS_disable_multi_thread)
+            opWrapper.disableMultiThreading();
 
         // Starting OpenPose
         op::opLog("Starting thread(s)...", op::Priority::High);
