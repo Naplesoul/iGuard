@@ -12,3 +12,4 @@ _deps
 
 *.caffemodel
 *.jpeg
+.DS_store
