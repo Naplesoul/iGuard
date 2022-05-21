@@ -10,6 +10,7 @@ For cuda devices:
 
 1. Download [CUDA 11.5.2](https://developer.nvidia.com/cuda-11-5-2-download-archive) deb(local) version for x86_64 ubuntu and follow installation instructions provided by NVIDIA.
 2. Download [cuDNN 8.3.2](https://developer.nvidia.com/cudnn) tar file and unzip it following [this guide](https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html), you may need to register for a NVIDIA developer account.
+3. You can follow the offical guide of [librealsense2](https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md) to manage your librealsense2 on your Linux.
 
 ```shell
 # build openpose
@@ -33,6 +34,14 @@ cmake-gui ..
 
 make -j `nproc`
 sudo make install
+
+# install librealsense2
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE
+
+sudo add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" -u
+
+sudo apt-get install librealsense2-dkms librealsense2-utils
+sudo apt-get install librealsense2-dev librealsense2-dbg
 
 # build pose_detect
 cd posedetect
