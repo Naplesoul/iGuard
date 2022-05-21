@@ -42,5 +42,8 @@ make
 # if you have this error message after running pose_detect: error while loading shared libraries: libcaffe.so.1.0.0: cannot open shared object file: No such file or directory
 # you may add the following env to your .bashrc
 export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+
+# if you want to get rid of vscode error when include <opencv2/opencv.hpp>, execute the following command
+sudo ln -s /usr/include/opencv4/opencv2 /usr/include/
 ```
 
