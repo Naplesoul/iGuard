@@ -1,4 +1,6 @@
 #include <gflags/gflags.h>
+#include <opencv2/opencv.hpp>
+#include <openpose/headers.hpp>
 
 #include "detector.h"
 
@@ -12,42 +14,6 @@ DEFINE_string(model_path, "../models",  "Path to caffe models directory.");
 DEFINE_string(pose_model, "BODY_25",    "Model to be used. `BODY_25` (fastest for CUDA version, most accurate, and includes"
                                         " foot keypoints), `COCO` (18 keypoints), `MPI` (15 keypoints, least accurate model but"
                                         " fastest on CPU), `MPI_4_layers` (15 keypoints, even faster but less accurate).");
-
-KeyPoint &Pose25::operator[](BodyPart bp)
-{
-    return keyPoints[bp];
-}
-
-Pose25::Pose25(const op::Array<float> &poseKeypoints, int person)
-{
-    int partCnt = poseKeypoints.getSize(1);
-    for (auto bodyPart = 0; bodyPart < partCnt; bodyPart++) {
-        KeyPoint *kp = &(keyPoints[bodyPart]);
-        kp->x = poseKeypoints[{person, bodyPart, 0}];
-        kp->y = poseKeypoints[{person, bodyPart, 1}];
-        kp->score = poseKeypoints[{person, bodyPart, 2}];
-    }
-}
-
-void Pose25::convert(std::vector<Pose25> &people,
-                     const std::shared_ptr<std::vector<std::shared_ptr<op::Datum>>>& datumsPtr)
-{
-    try {
-        if (datumsPtr != nullptr && !datumsPtr->empty()) {
-            const auto& poseKeypoints = datumsPtr->at(0)->poseKeypoints;
-            int peopleCnt = poseKeypoints.getSize(0);
-            for (auto person = 0; person < peopleCnt; person++) {
-                people.emplace_back(poseKeypoints, person);
-            }
-        }
-        else {
-            op::opLog("Nullptr or empty datumsPtr found.", op::Priority::High);
-        }
-    }
-    catch (const std::exception& e) {
-        op::error(e.what(), __LINE__, __FUNCTION__, __FILE__);
-    }
-}
 
 Detector::Detector(): opWrapper(op::ThreadManagerMode::Asynchronous)
 {
@@ -78,13 +44,13 @@ void Detector::stop()
     opWrapper.stop();
 }
 
-std::vector<Pose25> &
+std::vector<Pose2D> &
 Detector::detect(const cv::Mat &cvImageToProcess)
 {
     const op::Matrix imageToProcess = OP_CV2OPCONSTMAT(cvImageToProcess);
     datumsPtr = opWrapper.emplaceAndPop(imageToProcess);
     people.clear();
-    Pose25::convert(people, datumsPtr);
+    Pose2D::convert(people, datumsPtr);
     return people;
 }
 

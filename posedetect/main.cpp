@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     const cv::Mat cvImageToProcess = cv::imread(FLAGS_image_path);
     for (int i = 0; i < 20; ++i) {
         const auto opTimer = op::getTimerInit();
-        std::vector<Pose25> people = detector.detect(cvImageToProcess);
+        std::vector<Pose2D> people = detector.detect(cvImageToProcess);
         std::cout << "people count: " << people.size() << std::endl;
         op::printTime(opTimer, "detection time: ", " seconds.", op::Priority::High);
     }
