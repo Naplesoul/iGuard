@@ -1,6 +1,8 @@
 #include <opencv2/opencv.hpp>
 #include <gflags/gflags.h>
 
+#include "pose.h"
+#include "camera.h"
 #include "detector.h"
 
 DEFINE_string(image_path, "../data/test1.jpeg",
@@ -13,6 +15,8 @@ int main(int argc, char *argv[])
 
     Detector detector;
     detector.start();
+
+    auto cameras = Camera::getCameras();
 
     const cv::Mat cvImageToProcess = cv::imread(FLAGS_image_path);
     for (int i = 0; i < 20; ++i) {
