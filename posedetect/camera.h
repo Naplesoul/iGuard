@@ -39,4 +39,5 @@ public:
     void start();
     cv::Mat getFrame();
     KeyPoint3D convert3D(KeyPoint2D p);
+    Pose3D convert3DPose(Pose2D &pose);
 };

@@ -101,3 +101,12 @@ KeyPoint3D Camera::convert3D(KeyPoint2D p)
 
     return KeyPoint3D(real_pos(0), real_pos(1), real_pos(2), p.score);
 }
+
+Pose3D Camera::convert3DPose(Pose2D &pose)
+{
+    Pose3D pose_3d;
+    for (int i = 0; i < BODY_PART_CNT; ++i) {
+        pose_3d[BodyPart(i)] = convert3D(pose[BodyPart(i)]);
+    }
+    return pose_3d;
+}
