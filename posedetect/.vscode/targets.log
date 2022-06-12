@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Sun Jun 12 19:40:05 2022
+# Make data base, printed on Mon Jun 13 01:03:07 2022
 
 # Variables
 
@@ -57,7 +57,7 @@ LESSOPEN = | /usr/bin/lesspipe %s
 # environment
 VSCODE_CWD = /home/shen
 # environment
-SSH_CONNECTION = 192.168.0.101 53880 192.168.0.110 22
+SSH_CONNECTION = 192.168.0.101 54681 192.168.0.110 22
 # environment
 PATH = /home/shen/.vscode-server/bin/4af164ea3a06f701fe3e89a2bcbb421d2026b68f/bin/remote-cli:/home/shen/anaconda3/bin:/home/shen/anaconda3/condabin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/shen/anaconda3/bin
 # environment
@@ -67,7 +67,7 @@ CONDA_PREFIX = /home/shen/anaconda3
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /run/user/1000/vscode-ipc-905cdc16-5992-4d25-84e9-73935da4e9fb.sock
+VSCODE_IPC_HOOK_CLI = /run/user/1000/vscode-ipc-3272b049-c646-4e6d-b2bd-31a326748a39.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -115,7 +115,7 @@ MAKECMDGOALS := all
 # environment
 SHLVL = 1
 # environment
-XDG_SESSION_ID = 7
+XDG_SESSION_ID = 4
 # environment
 USER = shen
 # makefile
@@ -137,7 +137,7 @@ MAKEFLAGS = pqrR
 # environment
 MFLAGS = -pqrR
 # environment
-SSH_CLIENT = 192.168.0.101 53880 22
+SSH_CLIENT = 192.168.0.101 54681 22
 # automatic
 +D = $(patsubst %/,%,$(dir $+))
 # environment
@@ -239,6 +239,6 @@ GNUmakefile:
 # strcache performance: lookups = 27 / hit rate = 11%
 # hash-table stats:
 # Load=24/8192=0%, Rehash=0, Collisions=1/27=4%
-# Finished Make data base on Sun Jun 12 19:40:05 2022
+# Finished Make data base on Mon Jun 13 01:03:07 2022
 
  

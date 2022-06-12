@@ -3,6 +3,8 @@
 #include <opencv2/opencv.hpp>
 #include <openpose/headers.hpp>
 
+#define BODY_PART_CNT 25
+
 struct KeyPoint2D
 {
     float x, y;
@@ -38,7 +40,7 @@ enum BodyPart
 class Pose2D
 {
 private:
-    KeyPoint2D keyPoints[25];
+    KeyPoint2D keyPoints[BODY_PART_CNT];
 
 public:
 
@@ -52,7 +54,7 @@ public:
 class Pose3D
 {
 private:
-    KeyPoint3D keyPoints[25];
+    KeyPoint3D keyPoints[BODY_PART_CNT];
 
 public:
 
