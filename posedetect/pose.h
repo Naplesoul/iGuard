@@ -17,6 +17,8 @@ struct KeyPoint3D
     float score;
 
     KeyPoint3D(): x(0), y(0), z(0), score(0) {}
+    KeyPoint3D(float _x, float _y, float _z, float _score):
+        x(_x), y(_y), z(_z), score(_score) {}
 };
 
 enum BodyPart
