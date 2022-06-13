@@ -74,7 +74,7 @@ void Camera::init(float _w_ratio, int _w, int _h,
 
     M_inv = T_inv * R4_inv;
 
-    std::cout << M_inv;
+    std::cout << "M_inv:\n" << M_inv << "\n";
 }
 
 void Camera::start()
@@ -82,16 +82,16 @@ void Camera::start()
     pipe.start(cfg);
 }
 
-cv::Mat Camera::getFrame()
+cv::Mat &Camera::getFrame()
 {
     rs2::frameset data = pipe.wait_for_frames();
     data = align.process(data);
     dframe = data.get_depth_frame();
-    rs2::frame frame = data.get_color_frame();
-    // rs2::frame frame = dframe.apply_filter(color_map);
+    cframe = data.get_color_frame();
+    // rs2::frame cframe = dframe.apply_filter(color_map);
 
     // Create OpenCV matrix of size (w,h) from the colorized depth data
-    cv::Mat image(cv::Size(w, h), CV_8UC3, (void*)frame.get_data(), cv::Mat::AUTO_STEP);
+    image = cv::Mat(cv::Size(w, h), CV_8UC3, (void*)cframe.get_data(), cv::Mat::AUTO_STEP);
     return image;
 }
 
@@ -100,10 +100,14 @@ KeyPoint3D Camera::convert3D(KeyPoint2D p)
     int x = int(p.x);
     int y = int(p.y);
 
-    float depth = dframe.get_distance(x, y);
-    // printf("depth(%d, %d): %f\n", int(p.x), int(p.y), depth);
+    x = x >= w ? w : x;
+    y = y >= h ? h : x;
+    x = x < 0 ? 0 : x;
+    y = y < 0 ? 0 : y;
 
-    Eigen::Vector3f cam_pos(p.x - w / 2, h / 2 - p.y, 0);
+    float depth = dframe.get_distance(x, y);
+
+    Eigen::Vector3f cam_pos(x - w / 2, h / 2 - y, 0);
     cam_pos = cam_pos * (w_ratio / w);
     cam_pos(2) = 1;
     cam_pos.normalize();
@@ -114,7 +118,6 @@ KeyPoint3D Camera::convert3D(KeyPoint2D p)
     // std::cout << "\n\n\ncam_pos_4:\n" << cam_pos_4 << "\nreal_pos\n" << real_pos;
 
     return KeyPoint3D(real_pos(0), real_pos(1), real_pos(2), p.score);
-    // return KeyPoint3D(cam_pos(0), cam_pos(1), cam_pos(2), depth);
 }
 
 Pose3D Camera::convert3DPose(Pose2D &pose)

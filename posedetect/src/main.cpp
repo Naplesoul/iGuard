@@ -13,6 +13,8 @@
 
 DEFINE_string(image_path, "../data/test1.jpeg",
     "Process an image. Read all standard formats (jpg, png, bmp, etc.).");
+DEFINE_string(server_ip, "59.78.8.125", "ipv4 address of the server");
+DEFINE_int32(server_port, 50001, "udp port of the server");
 
 int test_main(int argc, char *argv[])
 {
@@ -41,7 +43,7 @@ int main(int argc, char *argv[])
 {
     // Parsing command line flags
     gflags::ParseCommandLineFlags(&argc, &argv, true);
-    UDPSender sender("59.78.8.125", 50001);
+    UDPSender sender(FLAGS_server_ip.c_str(), FLAGS_server_port);
 
     std::vector<Camera> cameras = Camera::getCameras();
 
@@ -53,26 +55,21 @@ int main(int argc, char *argv[])
         0, 0, 1);
     // cameras[1].init();
 
+    cameras[0].start();
+    // cameras[1].start();
     Detector detector;
     detector.start();
-    cameras[0].start();
 
     while (true) {
         auto begin = std::chrono::system_clock::now();
 
         std::vector<Pose3D> poses;
         for (auto &cam : cameras) {
-            cv::Mat frame = cam.getFrame();
+            cv::Mat &frame = cam.getFrame();
             std::vector<Pose2D> people = detector.detect(frame);
-            // if (people.size() != 1)
             cv::imwrite("./result.png", detector.getProcessedMat());
-            // printf("%d\n", people.size());
 
             if (people.size() > 0) {
-                printf("\n\n\n 2D:\n");
-                for (int i = 0; i < BODY_PART_CNT; ++i) {
-                    printf("[%.2f, %.2f, %.2f]\n", people.front()[BodyPart(i)].x, people.front()[BodyPart(i)].y, people.front()[BodyPart(i)].score);
-                }
                 Pose3D pose = cam.convert3DPose(people.front());
                 poses.push_back(pose);
             }
@@ -99,6 +96,10 @@ int main(int argc, char *argv[])
          
         auto end = std::chrono::system_clock::now();
         auto next_begin = begin + std::chrono::microseconds(1000000 / FPS);
+
+        std::chrono::nanoseconds process_time(0);
+        process_time += (end - begin);
+        std::cout << "Process Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "ms\n\n";
 
         if (end < next_begin) {
             usleep(std::chrono::duration_cast<std::chrono::microseconds>(next_begin - end).count());

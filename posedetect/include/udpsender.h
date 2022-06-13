@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,8 +18,8 @@ private:
     struct sockaddr_in serveraddr;
 
 public:
-    void send_to_server(const char* buf, int len);
-    void sendPoseToServer(Pose3D &pose3d);
+    void sendToServer(const char* buf, int len);
+    void sendPoseToServer(const Pose3D &pose3d);
 
     UDPSender(const char* addr, uint16_t port);
     ~UDPSender();

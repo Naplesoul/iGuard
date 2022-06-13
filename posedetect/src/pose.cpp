@@ -1,5 +1,6 @@
 #include <opencv2/opencv.hpp>
 #include <openpose/headers.hpp>
+#include <jsoncpp/json/json.h>
 
 #include "pose.h"
 
@@ -53,4 +54,29 @@ Pose3D Pose3D::combine(Pose3D &pose1, Pose3D &pose2)
 {
     // TODO: develop an algorithm
     return pose1;
+}
+
+Json::Value Pose3D::toJson() const
+{
+    Json::Value v;
+	v["node_num"] = BODY_PART_CNT;
+	
+	Json::Value nodes;
+	for (int i = 0; i < BODY_PART_CNT; ++i) {
+		Json::Value node;
+		node["x"] = keyPoints[i].x;
+		node["y"] = keyPoints[i].y;
+		node["z"] = keyPoints[i].z;
+        node["score"] = keyPoints[i].score;
+
+		nodes.append(node);
+	}
+	v["nodes"] = nodes;
+
+    return v;
+}
+
+std::string Pose3D::toJsonString() const
+{
+    return Json::FastWriter().write(toJson());
 }
