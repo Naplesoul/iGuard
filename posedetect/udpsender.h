@@ -6,16 +6,20 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-class udpsender
+#include "pose.h"
+
+class UDPSender
 {
 private:
     int sockfd;
     int addr_len;
     struct sockaddr_in serveraddr;
+
 public:
     void send_to_server(const char* buf, int len);
+    void sendPoseToServer(Pose3D &pose3d);
 
-    udpsender(const char* addr, uint16_t port);
-    ~udpsender();
+    UDPSender(const char* addr, uint16_t port);
+    ~UDPSender();
 };
 
