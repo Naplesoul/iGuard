@@ -24,6 +24,7 @@ private:
     rs2::context ctx;
     rs2::pipeline pipe;
     rs2::colorizer color_map;
+    rs2::align align;
 
     rs2::depth_frame dframe;
 
@@ -32,7 +33,8 @@ public:
 
     static std::vector<Camera> getCameras();
 
-    void init(float _w_ratio, float _x, float _y, float _z,
+    void init(float _w_ratio, int w, int h,
+              float _x, float _y, float _z,
               float r_x_x, float r_x_y, float r_x_z,
               float r_y_x, float r_y_y, float r_y_z,
               float r_z_x, float r_z_y, float r_z_z);
