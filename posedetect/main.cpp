@@ -2,10 +2,12 @@
 #include <unistd.h>
 #include <opencv2/opencv.hpp>
 #include <gflags/gflags.h>
+#include <jsoncpp/json/json.h>
 
 #include "pose.h"
 #include "camera.h"
 #include "detector.h"
+#include "udpsender.h"
 
 #define FPS 2
 
@@ -39,6 +41,7 @@ int main(int argc, char *argv[])
 {
     // Parsing command line flags
     gflags::ParseCommandLineFlags(&argc, &argv, true);
+    UDPSender sender("59.78.8.125", 50001);
 
     std::vector<Camera> cameras = Camera::getCameras();
 
@@ -70,11 +73,7 @@ int main(int argc, char *argv[])
                 for (int i = 0; i < BODY_PART_CNT; ++i) {
                     printf("[%.2f, %.2f, %.2f]\n", people.front()[BodyPart(i)].x, people.front()[BodyPart(i)].y, people.front()[BodyPart(i)].score);
                 }
-                printf("\n 3D:\n");
                 Pose3D pose = cam.convert3DPose(people.front());
-                for (int i = 0; i < BODY_PART_CNT; ++i) {
-                    printf("{\"x\":%.2f, \"y\":%.2f, \"z\":%.2f, \"score\":%.2f},\n", pose[BodyPart(i)].x, pose[BodyPart(i)].y, pose[BodyPart(i)].z, pose[BodyPart(i)].score);
-                }
                 poses.push_back(pose);
             }
         }
@@ -89,12 +88,13 @@ int main(int argc, char *argv[])
                 pose = Pose3D::combine(pose, *it);
             }
 
-            // printf("\n\nPerson0:\n");
-            // for (int i = 0; i < BODY_PART_CNT; ++i) {
-            //     printf("[%.2f, %.2f, %.2f, %.2f]\n", pose[BodyPart(i)].x, pose[BodyPart(i)].y, pose[BodyPart(i)].z, pose[BodyPart(i)].score);
-            // }
+            printf("\n 3D:\n");
+            for (int i = 0; i < BODY_PART_CNT; ++i) {
+                printf("{\"x\":%.2f, \"y\":%.2f, \"z\":%.2f, \"score\":%.2f},\n", pose[BodyPart(i)].x, pose[BodyPart(i)].y, pose[BodyPart(i)].z, pose[BodyPart(i)].score);
+            }
+            sender.sendPoseToServer(pose);
         } else {
-            // printf("no person found\n");
+            printf("no person found\n");
         }
          
         auto end = std::chrono::system_clock::now();
