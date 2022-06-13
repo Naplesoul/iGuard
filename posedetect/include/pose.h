@@ -2,6 +2,7 @@
 
 #include <opencv2/opencv.hpp>
 #include <openpose/headers.hpp>
+#include <jsoncpp/json/json.h>
 
 #define BODY_PART_CNT 25
 
@@ -61,6 +62,7 @@ public:
     Pose3D();
 
     KeyPoint3D &operator[](BodyPart bp);
-
     static Pose3D combine(Pose3D &pose1, Pose3D &pose2);
+    Json::Value toJson() const;
+    std::string toJsonString() const;
 };

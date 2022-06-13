@@ -27,6 +27,8 @@ private:
     rs2::align align;
 
     rs2::depth_frame dframe;
+    rs2::frame cframe;
+    cv::Mat image;
 
 public:
     Camera(rs2::config &cfg, rs2::context &ctx);
@@ -39,7 +41,7 @@ public:
               float r_y_x, float r_y_y, float r_y_z,
               float r_z_x, float r_z_y, float r_z_z);
     void start();
-    cv::Mat getFrame();
+    cv::Mat &getFrame();
     KeyPoint3D convert3D(KeyPoint2D p);
     Pose3D convert3DPose(Pose2D &pose);
 };
