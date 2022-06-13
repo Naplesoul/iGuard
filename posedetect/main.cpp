@@ -7,7 +7,7 @@
 #include "camera.h"
 #include "detector.h"
 
-#define FPS 10
+#define FPS 2
 
 DEFINE_string(image_path, "../data/test1.jpeg",
     "Process an image. Read all standard formats (jpg, png, bmp, etc.).");
@@ -31,6 +31,8 @@ int test_main(int argc, char *argv[])
     }
     cv::imwrite("./result.png", detector.getProcessedMat());
     detector.stop();
+
+    return 0;
 }
 
 int main(int argc, char *argv[])
@@ -40,11 +42,17 @@ int main(int argc, char *argv[])
 
     std::vector<Camera> cameras = Camera::getCameras();
 
-    // cameras[0].init();
+    cameras[0].init(
+        3, 640, 480,
+        0, 1, 0,
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1);
     // cameras[1].init();
 
     Detector detector;
     detector.start();
+    cameras[0].start();
 
     while (true) {
         auto begin = std::chrono::system_clock::now();
@@ -53,9 +61,21 @@ int main(int argc, char *argv[])
         for (auto &cam : cameras) {
             cv::Mat frame = cam.getFrame();
             std::vector<Pose2D> people = detector.detect(frame);
+            // if (people.size() != 1)
+            cv::imwrite("./result.png", detector.getProcessedMat());
+            // printf("%d\n", people.size());
 
             if (people.size() > 0) {
-                poses.push_back(cam.convert3DPose(people.front()));
+                printf("\n\n\n 2D:\n");
+                for (int i = 0; i < BODY_PART_CNT; ++i) {
+                    printf("[%.2f, %.2f, %.2f]\n", people.front()[BodyPart(i)].x, people.front()[BodyPart(i)].y, people.front()[BodyPart(i)].score);
+                }
+                printf("\n 3D:\n");
+                Pose3D pose = cam.convert3DPose(people.front());
+                for (int i = 0; i < BODY_PART_CNT; ++i) {
+                    printf("{\"x\":%.2f, \"y\":%.2f, \"z\":%.2f, \"score\":%.2f},\n", pose[BodyPart(i)].x, pose[BodyPart(i)].y, pose[BodyPart(i)].z, pose[BodyPart(i)].score);
+                }
+                poses.push_back(pose);
             }
         }
 
@@ -68,8 +88,15 @@ int main(int argc, char *argv[])
             for (; it != poses.end(); ++it) {
                 pose = Pose3D::combine(pose, *it);
             }
+
+            // printf("\n\nPerson0:\n");
+            // for (int i = 0; i < BODY_PART_CNT; ++i) {
+            //     printf("[%.2f, %.2f, %.2f, %.2f]\n", pose[BodyPart(i)].x, pose[BodyPart(i)].y, pose[BodyPart(i)].z, pose[BodyPart(i)].score);
+            // }
+        } else {
+            // printf("no person found\n");
         }
-        
+         
         auto end = std::chrono::system_clock::now();
         auto next_begin = begin + std::chrono::microseconds(1000000 / FPS);
 
