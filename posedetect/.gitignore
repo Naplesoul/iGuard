@@ -1,5 +1,0 @@
-build/*
-data/*
-
-*.caffemodel
-*.jpeg
