@@ -4,8 +4,11 @@
 #include <iomanip>
 #include <iostream>
 #include <unistd.h>
+#include <chrono>
 
 #include "udpsender.h"
+
+#define FPS 10
 
 using namespace tdv::nuitrack;
 
@@ -86,6 +89,8 @@ int main(int argc, char* argv[])
     int errorCode = EXIT_SUCCESS;
     while (!finished)
     {
+        auto begin = std::chrono::system_clock::now();
+
         try
         {
             // Wait for new skeleton tracking data
@@ -102,6 +107,17 @@ int main(int argc, char* argv[])
         {
             std::cerr << "Nuitrack update failed (ExceptionType: " << e.type() << ")" << std::endl;
             errorCode = EXIT_FAILURE;
+        }
+
+        auto end = std::chrono::system_clock::now();
+        auto next_begin = begin + std::chrono::microseconds(1000000 / FPS);
+
+        std::chrono::nanoseconds process_time(0);
+        process_time += (end - begin);
+        std::cout << "Process Time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "us\n\n";
+
+        if (end < next_begin) {
+            usleep(std::chrono::duration_cast<std::chrono::microseconds>(next_begin - end).count());
         }
     }
 
