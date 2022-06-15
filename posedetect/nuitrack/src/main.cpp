@@ -3,8 +3,13 @@
 #include <signal.h>
 #include <iomanip>
 #include <iostream>
+#include <unistd.h>
+
+#include "udpsender.h"
 
 using namespace tdv::nuitrack;
+
+UDPSender sender("59.78.8.125", 50001);
 
 void showHelpInfo()
 {
@@ -12,35 +17,24 @@ void showHelpInfo()
 }
 
 // Callback for the hand data update event
-void onHandUpdate(SkeletonData::Ptr handData)
+void onSkeletonUpdate(SkeletonData::Ptr skeletonData)
 {
-    if (!handData)
+    if (!skeletonData)
     {
-        // No hand data
-        std::cout << "No hand data" << std::endl;
+        // No skeleton data
+        std::cout << "No skeleton data" << std::endl;
         return;
     }
 
-    auto userHands = handData->getSkeletons();
-    if (userHands.empty())
+    auto userSkeletons = skeletonData->getSkeletons();
+    if (userSkeletons.empty())
     {
-        // No user hands
+        // No user skeletons
+        std::cout << "No user skeletons" << std::endl;
         return;
     }
 
-    auto rightHand = userHands[0].joints[JOINT_HEAD];
-    // if (!rightHand)
-    // {
-    //     // No right hand
-    //     std::cout << "Right hand of the first user is not found" << std::endl;
-    //     return;
-    // }
-
-    std::cout << std::fixed << std::setprecision(3);
-    std::cout << "Head position: "
-                 "x = " << rightHand.real.x << ", "
-                 "y = " << rightHand.real.y << ", "
-                 "z = " << rightHand.real.z << std::endl;
+    sender.sendPoseToServer(userSkeletons[0]);
 }
 
 bool finished;
@@ -71,12 +65,12 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
     
-    // Create HandTracker module, other required modules will be
+    // Create SkeletonTracker module, other required modules will be
     // created automatically
     auto skeletonTracker = SkeletonTracker::create();
 
     // Connect onHandUpdate callback to receive hand tracking data
-    skeletonTracker->connectOnUpdate(onHandUpdate);
+    skeletonTracker->connectOnUpdate(onSkeletonUpdate);
 
     // Start Nuitrack
     try
@@ -94,14 +88,15 @@ int main(int argc, char* argv[])
     {
         try
         {
-            // Wait for new hand tracking data
+            // Wait for new skeleton tracking data
             Nuitrack::waitUpdate(skeletonTracker);
         }
         catch (LicenseNotAcquiredException& e)
         {
             std::cerr << "LicenseNotAcquired exception (ExceptionType: " << e.type() << ")" << std::endl;
             errorCode = EXIT_FAILURE;
-            break;
+            Nuitrack::release();
+            execv("./pose_detect", argv);
         }
         catch (const Exception& e)
         {
