@@ -8,15 +8,15 @@
 
 #include "udpsender.h"
 
-#define FPS 10
+#define FPS 15
 
 using namespace tdv::nuitrack;
 
-UDPSender sender("59.78.8.125", 50001);
+UDPSender sender("59.78.8.125", 50002);
 
 void showHelpInfo()
 {
-	std::cout << "Usage: nuitrack_console_sample [path/to/nuitrack.config]" << std::endl;
+	std::cout << "Usage: pose_detect [path/to/nuitrack.config]" << std::endl;
 }
 
 // Callback for the hand data update event
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
     }
     catch (const Exception& e)
     {
-        std::cerr << "Can not initialize Nuitrack (ExceptionType: " << e.type() << ")" << std::endl;
+        std::cout << "Can not initialize Nuitrack (ExceptionType: " << e.type() << ")" << std::endl;
         return EXIT_FAILURE;
     }
     

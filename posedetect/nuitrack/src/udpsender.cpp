@@ -31,13 +31,13 @@ void UDPSender::sendToServer(const char* buf, int len){
 void UDPSender::sendPoseToServer(const tdv::nuitrack::Skeleton &skeleton)
 {
 	Json::Value json;
-	json["node_num"] = 24;
+	json["node_num"] = 25;
 	Json::Value nodes;
-	for (int i = 0; i < 24; ++i) {
+	for (int i = 0; i < 25; ++i) {
 		Json::Value node;
-		node["x"] = skeleton.joints[i].real.x;
-		node["y"] = skeleton.joints[i].real.y;
-		node["z"] = skeleton.joints[i].real.z;
+		node["x"] = skeleton.joints[i].real.x / 1000;
+		node["y"] = skeleton.joints[i].real.y / 1000;
+		node["z"] = skeleton.joints[i].real.z / 1000;
         node["score"] = skeleton.joints[i].confidence;
 
 		nodes.append(node);
