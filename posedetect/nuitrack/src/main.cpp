@@ -1,22 +1,22 @@
-#include <nuitrack/Nuitrack.h>
-
 #include <signal.h>
 #include <iomanip>
 #include <iostream>
+#include <fstream>
+#include <memory>
 #include <unistd.h>
 #include <chrono>
+#include <jsoncpp/json/json.h>
+#include <nuitrack/Nuitrack.h>
 
 #include "udpsender.h"
 
-#define FPS 15
-
 using namespace tdv::nuitrack;
 
-UDPSender sender("59.78.8.125", 50002);
+UDPSender *sender = nullptr;
 
 void showHelpInfo()
 {
-	std::cout << "Usage: pose_detect [path/to/nuitrack.config]" << std::endl;
+	std::cout << "Usage: pose_detect [path/to/camera_config.json] [path/to/nuitrack.config]" << std::endl;
 }
 
 // Callback for the hand data update event
@@ -37,7 +37,7 @@ void onSkeletonUpdate(SkeletonData::Ptr skeletonData)
         return;
     }
 
-    sender.sendPoseToServer(userSkeletons[0]);
+    sender->sendPoseToServer(userSkeletons[0]);
 }
 
 bool finished;
@@ -51,11 +51,25 @@ int main(int argc, char* argv[])
 {
     showHelpInfo();
 
+    if (argc < 2) {
+        std::cerr << "missing camera config json\n";
+        exit(-1);
+    }
+
     signal(SIGINT, &signalHandler);
 
     std::string configPath = "";
-    if (argc > 1)
-        configPath = argv[1];
+    if (argc > 2) {
+        configPath = argv[2];
+    }
+
+    Json::Value config;
+    Json::Reader reader;
+    std::fstream file(argv[1]);
+    reader.parse(file, config);
+
+    sender = new UDPSender(config["serverIp"].asCString(), config["serverPort"].asInt());
+    int fps = config["fps"].asInt();
 
     // Initialize Nuitrack
     try
@@ -64,8 +78,19 @@ int main(int argc, char* argv[])
     }
     catch (const Exception& e)
     {
-        std::cout << "Can not initialize Nuitrack (ExceptionType: " << e.type() << ")" << std::endl;
+        std::cerr << "Can not initialize Nuitrack (ExceptionType: " << e.type() << ")" << std::endl;
         return EXIT_FAILURE;
+    }
+
+    std::string serial = config["serial"].asString();
+    auto devices = Nuitrack::getDeviceList();
+    for (auto &device : devices) {
+        std::string devSerial = device->getInfo(tdv::nuitrack::device::DeviceInfoType::SERIAL_NUMBER);
+        if (devSerial == serial) {
+            std::cout << "Found device!\n";
+            Nuitrack::setDevice(device);
+            break;
+        }
     }
     
     // Create SkeletonTracker module, other required modules will be
@@ -101,7 +126,8 @@ int main(int argc, char* argv[])
             std::cerr << "LicenseNotAcquired exception (ExceptionType: " << e.type() << ")" << std::endl;
             errorCode = EXIT_FAILURE;
             Nuitrack::release();
-            execv("./pose_detect", argv);
+            delete sender;
+            execv(argv[0], argv);
         }
         catch (const Exception& e)
         {
@@ -110,7 +136,7 @@ int main(int argc, char* argv[])
         }
 
         auto end = std::chrono::system_clock::now();
-        auto next_begin = begin + std::chrono::microseconds(1000000 / FPS);
+        auto next_begin = begin + std::chrono::microseconds(1000000 / fps);
 
         std::chrono::nanoseconds process_time(0);
         process_time += (end - begin);
@@ -125,6 +151,8 @@ int main(int argc, char* argv[])
     try
     {
         Nuitrack::release();
+        delete sender;
+        sender = nullptr;
     }
     catch (const Exception& e)
     {
