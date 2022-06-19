@@ -3,5 +3,10 @@
     "serverPort": 50002,
     "fps": 15,
     "deviceName": "Intel RealSense D435",
-    "serial": "819612071399"
+    "serial": "819612071399",
+    "cameraPosition": [0, 900, 0],
+    "cameraDirectionX": [1, 0, 0],
+    "cameraDirectionY": [0, 1, 0],
+    "cameraDirectionZ": [0, 0, 1],
+    "smooth": 0.3
 }

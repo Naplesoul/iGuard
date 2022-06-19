@@ -6,13 +6,15 @@
 #include <unistd.h>
 #include <chrono>
 #include <jsoncpp/json/json.h>
+#include <eigen3/Eigen/LU>
+#include <eigen3/Eigen/Core>
 #include <nuitrack/Nuitrack.h>
 
-#include "udpsender.h"
+#include "client.h"
 
 using namespace tdv::nuitrack;
 
-UDPSender *sender = nullptr;
+DetectClient *client = nullptr;
 
 void showHelpInfo()
 {
@@ -37,7 +39,7 @@ void onSkeletonUpdate(SkeletonData::Ptr skeletonData)
         return;
     }
 
-    sender->sendPoseToServer(userSkeletons[0]);
+    client->update(userSkeletons[0]);
 }
 
 bool finished;
@@ -68,8 +70,39 @@ int main(int argc, char* argv[])
     std::fstream file(argv[1]);
     reader.parse(file, config);
 
-    sender = new UDPSender(config["serverIp"].asCString(), config["serverPort"].asInt());
     int fps = config["fps"].asInt();
+
+    float x = config["cameraPosition"][0].asFloat();
+    float y = config["cameraPosition"][1].asFloat();
+    float z = config["cameraPosition"][2].asFloat();
+
+    Eigen::Matrix4f T_inv = Eigen::Matrix4f::Identity();
+    T_inv(0, 3) = x;
+    T_inv(1, 3) = y;
+    T_inv(2, 3) = z;
+
+    Eigen::Vector3f dir_x(config["cameraDirectionX"][0].asFloat(), config["cameraDirectionX"][1].asFloat(), config["cameraDirectionX"][2].asFloat());
+    Eigen::Vector3f dir_y(config["cameraDirectionY"][0].asFloat(), config["cameraDirectionY"][1].asFloat(), config["cameraDirectionY"][2].asFloat());
+    Eigen::Vector3f dir_z(config["cameraDirectionZ"][0].asFloat(), config["cameraDirectionZ"][1].asFloat(), config["cameraDirectionZ"][2].asFloat());
+
+    dir_x.normalize();
+    dir_y.normalize();
+    dir_z.normalize();
+
+    Eigen::Matrix3f R3;
+    R3.row(0) = dir_x;
+    R3.row(1) = dir_y;
+    R3.row(2) = dir_z;
+
+    Eigen::Matrix3f R3_inv = R3.inverse();
+    Eigen::Matrix4f R4_inv = Eigen::Matrix4f::Identity();
+    R4_inv.block(0, 0, 3, 3) = R3_inv.block(0, 0, 3, 3);
+
+    Eigen::Matrix4f M_inv = T_inv * R4_inv;
+
+    std::cout << "M_inv:\n" << M_inv << "\n";
+
+    client = new DetectClient(config["serverIp"].asCString(), config["serverPort"].asInt(), M_inv, config["smooth"].asFloat());
 
     // Initialize Nuitrack
     try
@@ -126,7 +159,6 @@ int main(int argc, char* argv[])
             std::cerr << "LicenseNotAcquired exception (ExceptionType: " << e.type() << ")" << std::endl;
             errorCode = EXIT_FAILURE;
             Nuitrack::release();
-            delete sender;
             execv(argv[0], argv);
         }
         catch (const Exception& e)
@@ -151,8 +183,8 @@ int main(int argc, char* argv[])
     try
     {
         Nuitrack::release();
-        delete sender;
-        sender = nullptr;
+        delete client;
+        client = nullptr;
     }
     catch (const Exception& e)
     {
