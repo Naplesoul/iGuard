@@ -19,7 +19,7 @@ struct Point
         x(x), y(y), z(z), score(score) {}
 };
 
-struct Skeleton
+struct PureSkeleton
 {
     Point joints[25];
 };
@@ -31,18 +31,20 @@ private:
     int addr_len;
     struct sockaddr_in serveraddr;
 
+    uint64_t frameId;
+    int cameraId;
     float smooth;
     float smoothRest;
     Eigen::Matrix4f M_inv;
     Json::FastWriter writer;
-    Skeleton skeleton;
+    PureSkeleton skeleton;
 
     void sendToServer(const char* buf, int len);
     void sendPoseToServer();
 
 public:
-    void update(const tdv::nuitrack::Skeleton &newSkeleton);
+    void update(uint64_t frameId, const tdv::nuitrack::Skeleton &newSkeleton);
 
-    DetectClient(const char* addr, uint16_t port, Eigen::Matrix4f M_inv, float smooth = 0.3);
+    DetectClient(const char* addr, uint16_t port, int cameraId, Eigen::Matrix4f M_inv, float smooth = 0.3);
     ~DetectClient();
 };

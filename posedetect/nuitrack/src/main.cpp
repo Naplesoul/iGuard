@@ -5,6 +5,7 @@
 #include <memory>
 #include <unistd.h>
 #include <chrono>
+#include <thread>
 #include <jsoncpp/json/json.h>
 #include <eigen3/Eigen/LU>
 #include <eigen3/Eigen/Core>
@@ -15,6 +16,28 @@
 using namespace tdv::nuitrack;
 
 DetectClient *client = nullptr;
+uint64_t frameId = 0;
+int fps = 15;
+
+std::chrono::system_clock::time_point stringToDateTime(const std::string &s)
+{
+    std::tm timeDate = {};
+    std::istringstream ss(s);
+    ss >> std::get_time(&timeDate, "%Y-%m-%d %H:%M:%S");
+    return std::chrono::system_clock::from_time_t(mktime(&timeDate));
+}
+
+std::chrono::system_clock::time_point firstFrameTime = stringToDateTime("2022-06-21 00:00::00");
+
+uint64_t waitUntilNextFrame()
+{
+    auto now = std::chrono::system_clock::now();
+    std::chrono::nanoseconds frameTime(1000000000 / fps);
+    std::chrono::nanoseconds totalTime(now - firstFrameTime);
+    uint64_t frameId = std::ceil(double(totalTime.count()) / double(frameTime.count()));
+    std::this_thread::sleep_for(firstFrameTime + frameId * frameTime - now);
+    return frameId;
+}
 
 void showHelpInfo()
 {
@@ -39,7 +62,7 @@ void onSkeletonUpdate(SkeletonData::Ptr skeletonData)
         return;
     }
 
-    client->update(userSkeletons[0]);
+    client->update(frameId, userSkeletons[0]);
 }
 
 bool finished;
@@ -70,7 +93,7 @@ int main(int argc, char* argv[])
     std::fstream file(argv[1]);
     reader.parse(file, config);
 
-    int fps = config["fps"].asInt();
+    fps = config["fps"].asInt();
 
     float x = config["cameraPosition"][0].asFloat();
     float y = config["cameraPosition"][1].asFloat();
@@ -102,7 +125,8 @@ int main(int argc, char* argv[])
 
     std::cout << "M_inv:\n" << M_inv << "\n";
 
-    client = new DetectClient(config["serverIp"].asCString(), config["serverPort"].asInt(), M_inv, config["smooth"].asFloat());
+    client = new DetectClient(config["serverIp"].asCString(), config["serverPort"].asInt(),
+                              config["cameraId"].asInt(), M_inv, config["smooth"].asFloat());
 
     // Initialize Nuitrack
     try
@@ -145,8 +169,10 @@ int main(int argc, char* argv[])
     }
 
     int errorCode = EXIT_SUCCESS;
+    auto start = std::chrono::system_clock::time_point();
     while (!finished)
     {
+        frameId = waitUntilNextFrame();
         auto begin = std::chrono::system_clock::now();
 
         try
@@ -168,15 +194,9 @@ int main(int argc, char* argv[])
         }
 
         auto end = std::chrono::system_clock::now();
-        auto next_begin = begin + std::chrono::microseconds(1000000 / fps);
 
-        std::chrono::nanoseconds process_time(0);
-        process_time += (end - begin);
+        std::chrono::nanoseconds process_time(end - begin);
         std::cout << "Process Time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "us\n\n";
-
-        if (end < next_begin) {
-            usleep(std::chrono::duration_cast<std::chrono::microseconds>(next_begin - end).count());
-        }
     }
 
     // Release Nuitrack
