@@ -4,9 +4,9 @@
 #include <eigen3/Eigen/Core>
 #include <jsoncpp/json/json.h>
 
-DetectClient::DetectClient(const char* addr, uint16_t port,
+DetectClient::DetectClient(const char* addr, uint16_t port, int _cameraId,
 						   Eigen::Matrix4f _M_inv, float _smooth):
-	smooth(_smooth), smoothRest(1 - _smooth), M_inv(_M_inv)
+	frameId(0), cameraId(_cameraId), smooth(_smooth), smoothRest(1 - _smooth), M_inv(_M_inv)
 {
 	addr_len = sizeof(struct sockaddr_in);
 	memset(&serveraddr, 0, addr_len);
@@ -32,8 +32,6 @@ void DetectClient::sendToServer(const char* buf, int len){
 
 void DetectClient::sendPoseToServer()
 {
-	Json::Value json;
-	json["node_num"] = 25;
 	Json::Value nodes;
 	for (int i = 0; i < 25; ++i) {
 		Json::Value node;
@@ -45,6 +43,11 @@ void DetectClient::sendPoseToServer()
 
 		nodes.append(node);
 	}
+
+	Json::Value json;
+	json["camera_id"] = cameraId;
+	json["frame_id"] = Json::Value::Int64(frameId);
+	json["node_num"] = 25;
 	json["nodes"] = nodes;
 
 	std::cout << "\n\n\nSending\n" << json.toStyledString();
@@ -52,8 +55,9 @@ void DetectClient::sendPoseToServer()
 	sendToServer(jsonStr.c_str(), jsonStr.length());
 }
 
-void DetectClient::update(const tdv::nuitrack::Skeleton &newSkeleton)
+void DetectClient::update(uint64_t _frameId, const tdv::nuitrack::Skeleton &newSkeleton)
 {
+	frameId = _frameId;
 	for (int i = 0; i < 25; ++i) {
 		Eigen::Vector4f cam4(newSkeleton.joints[i].real.x, newSkeleton.joints[i].real.y, newSkeleton.joints[i].real.z, 1);
 		Eigen::Vector4f real4 = M_inv * cam4;

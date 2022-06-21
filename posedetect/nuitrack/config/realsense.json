@@ -2,11 +2,12 @@
     "serverIp": "59.78.8.125",
     "serverPort": 50002,
     "fps": 15,
+    "cameraId": 2,
     "deviceName": "Intel RealSense D435",
     "serial": "819612071399",
-    "cameraPosition": [0, 900, 0],
-    "cameraDirectionX": [1, 0, 0],
+    "cameraPosition": [-965, 80, 1770],
+    "cameraDirectionX": [0, 0, -1],
     "cameraDirectionY": [0, 1, 0],
-    "cameraDirectionZ": [0, 0, 1],
-    "smooth": 0.3
+    "cameraDirectionZ": [1, 0, 0],
+    "smooth": 0
 }
