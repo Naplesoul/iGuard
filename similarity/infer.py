@@ -1,7 +1,7 @@
-from pickletools import optimize
-import train
-import torch
 import json
+import torch
+
+import utils
 
 def load_json(filename):
     f = open(filename,'r')
@@ -12,7 +12,7 @@ def load_json(filename):
 if __name__ == "__main__":
     data = load_json("./dataset/1.json")
     data = data[:100]
-    epoch, model, optimizer = train.load()
+    epoch, model, optimizer = utils.load_model()
     model = model.eval().cuda()
 
     input = torch.tensor(data)
