@@ -46,7 +46,7 @@ def load_model():
     model = MMD_NCA_Net().cuda().double()
 
     if os.path.exists(os.path.join(config.model_dir, "model.meta")):
-        meta = torch.load(config.model_dir + "model.meta")
+        meta = torch.load(os.path.join(config.model_dir, "model.meta"))
         epoch = meta["epoch"]
         checkpoint_filename = meta["checkpoint"]
         checkpoint = torch.load(os.path.join(config.model_dir, checkpoint_filename))
