@@ -28,7 +28,7 @@ class SelfAttentiveEncoder(nn.Module):
 
     def forward(self, outp):
         size = outp.size()  # [bsz, len, nhid] 50,25,128
-        compressed_embeddings = outp.view(-1, size[2])  # [bsz*len, nhid*2]
+        compressed_embeddings = outp.contiguous().view(-1, size[2])  # [bsz*len, nhid*2]
 
         hbar = self.tanh(self.ws1(self.drop(compressed_embeddings)))  # [bsz*len, attention-unit]
         alphas = self.ws2(hbar).view(size[0], size[1], -1)  # [bsz, len, hop]

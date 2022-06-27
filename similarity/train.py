@@ -13,8 +13,9 @@ from torch.utils.data import DataLoader
 import json
 from net import MMD_NCA_Net
 import os
+import gc
 
-num_epochs = 70000
+num_epochs = 300000
 learning_rate = 0.0001
 
 use_cuda = torch.cuda.is_available()
@@ -104,7 +105,7 @@ def save_to_json(dic,target_dir):
 def read_from_json(target_dir):
     f = open(target_dir,'r')
     data = json.load(f)
-    data = json.loads(data)
+    # data = json.loads(data)
     f.close()
     return data
 
@@ -229,15 +230,16 @@ def train(model, train_loader, myloss, optimizer, epoch):
     for batch_idx, train_data in enumerate(train_loader):
         train_data = Variable(train_data).type(torch.cuda.DoubleTensor).squeeze().view(175,50,34).permute(1,0,2)
         optimizer.zero_grad()
+        # print(train_data.shape): [50, 175, 34], 50: squence length, 175: batch size, 34 input size
+        # print(train_data)
         output = model(train_data)
         # loss = myloss(output, train_data)
         loss = myloss(output)
         loss.backward()
         optimizer.step()
-        if batch_idx%100 == 0:
-             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tloss: {:.6f}'.format(
-                epoch, batch_idx*len(train_data), len(train_loader.dataset),
-                 100.*batch_idx/len(train_loader), 10000.*loss.data.cpu().numpy()))
+        print('Train Epoch: {} [{}/{} ({:.0f}%)]\tloss: {:.6f}'.format(
+              epoch, batch_idx*len(train_data), len(train_loader.dataset),
+              100.*batch_idx/len(train_loader), 10000.*loss.data.cpu().numpy()))
         return loss
 
 def save(epoch, model: MMD_NCA_Net, optimizer: torch.optim.Adam):
@@ -273,7 +275,7 @@ if __name__ == "__main__":
     criterion = MMD_NCA_loss()
 
     #generate training data
-    train_data = MMD_NCA_Dataset('./dataset/GIT_zizi.json', 3000)
+    train_data = MMD_NCA_Dataset('./dataset/total.json', 4000)
     train_loader = DataLoader(train_data, batch_size = 1, shuffle = True)
 
     loss_total = 0.
@@ -283,8 +285,15 @@ if __name__ == "__main__":
         if epoch % 2000 == 0:
             print('loss mean after {} epochs: {}'.format(epoch, loss_total / 2000))
             loss_total = 0.
-        if epoch % 5000 == 0:
             save(epoch, model, optimizer)
+        if epoch % 10000 == 0:
+            train_data = []
+            train_loader = []
+            del train_loader
+            del train_data
+            gc.collect()
+            train_data = MMD_NCA_Dataset('./dataset/total.json', 4000)
+            train_loader = DataLoader(train_data, batch_size = 1, shuffle = True)
         epoch += 1
 
 # save_models(num_epochs)
