@@ -30,14 +30,9 @@ class MMD_NCA_loss(nn.Module):
         m = x.size()[0]
         n = y.size()[0]
         x = x.view(m, 1, -1)
-        # print(x.shape)
         x_square = x.repeat(1, m, 1)
-        # print(x_square)
-        # x_IID = x_IID.view(1, -1, m)
         x_IID = x_IID.view(-1, m, 1)
-        # print(x_IID.shape)
         x_IID_square = x_IID.repeat(m, 1, 1)
-        # print(x_IID_square.shape)
         value_1 = torch.sum(self.kernel_function(x_square, x_IID_square)) / (m**2)
         y = y.view(1, n, -1)
         y_square = y.repeat(n, 1, 1)
@@ -48,158 +43,79 @@ class MMD_NCA_loss(nn.Module):
         return value_1 - 2*value_2 + value_3
     
     def forward(self, x):
-        # print(x[0].shape)
         x = x.view(7, 25)
-        #print(x[0], x[1])
-        # numerator = torch.exp(-self.MMD(x[0], x[1], x[2], x[3]))
         numerator = torch.exp(-self.MMD(x[0], x[0], x[1], x[1]))
-        # numerator = torch.exp(self.MMD(x[0], x[1], x[2], x[3]))
-        # print(self.MMD(x[0], x[1], x[2], x[3]))
-        # calculate the denominator in MMD NCA loss, only use 3 negative catogories
-#         value_1 = torch.exp(-self.MMD(x[0], x[1], x[5], x[6]))
-#         value_2 = torch.exp(-self.MMD(x[0], x[2], x[7], x[8]))
-#         value_3 = torch.exp(-self.MMD(x[0], x[1], x[9], x[10]))
         value_1 = torch.exp(-self.MMD(x[0], x[0], x[2], x[2]))
         value_2 = torch.exp(-self.MMD(x[0], x[0], x[3], x[3]))
         value_3 = torch.exp(-self.MMD(x[0], x[0], x[4], x[4]))
         value_4 = torch.exp(-self.MMD(x[0], x[0], x[5], x[5]))
         value_5 = torch.exp(-self.MMD(x[0], x[0], x[6], x[6]))
-#         value_1 = torch.exp(self.MMD(x[0], x[1], x[5], x[6]))
-#         value_2 = torch.exp(self.MMD(x[0], x[2], x[7], x[8]))
-#         value_3 = torch.exp(self.MMD(x[0], x[1], x[9], x[10]))
-        # print(value_1, value_2, value_3)
         denominator = value_1 + value_2 + value_3 + value_4 + value_5
-        # print(numerator, denominator)
         loss = torch.exp(- numerator / denominator)
-#        return numerator / denominator
         return loss
 
 class MMD_NCA_Dataset(Dataset):
     def __init__(self, json_name, num_MMD_NCA_Groups):
-        # datafile
-        df = utils.read_from_json(json_name)
-        for key in df:
-            df[key] = np.asarray(df[key])
-        gc.collect()
         self.num_MMD_NCA_Groups = num_MMD_NCA_Groups
-        self.training_MMD_NCA_Groups = self.generate_MMD_NCA_Dataset(df, num_MMD_NCA_Groups)
-    
-    @staticmethod
-    def generate_MMD_NCA_Dataset(df, num_MMD_NCA_Groups):
-        
-        MMD_NCA_Groups = []
-        classes     = []
-        for key in df:
-            classes.append(key)
-        # face_classes = make_dictionary_for_face_class(df)
-        
+        self.raw = utils.read_from_json(json_name)
+        for key in self.raw:
+            self.raw[key] = np.asarray(self.raw[key])
+        gc.collect()
+
+        classes_all = []
+        for key in self.raw:
+            if len(self.raw[key]) >= 2:
+                classes_all.append(key)
+        if len(classes_all) < 6:
+            print("Training dataset is not sufficient.")
+            exit(-1)
+
+        # [[[index of motion * 25] * 7 classes] * num_MMD_NCA_Groups]
+        self.MMD_NCA_Groups = []
+        # [[pos_class, pos_class, neg_class_0, ..., neg_class_5] * num_MMD_NCA_Groups]
+        self.MMD_NCA_Classes = []
+
         for _ in range(num_MMD_NCA_Groups):
-            pos_class = np.random.choice(classes)
-            neg_class_1 = np.random.choice(classes)
-            neg_class_2 = np.random.choice(classes)
-            neg_class_3 = np.random.choice(classes)
-            neg_class_4 = np.random.choice(classes)
-            neg_class_5 = np.random.choice(classes)
-            while len(df[pos_class]) < 2:
-                pos_class = np.random.choice(classes)
-            while (neg_class_1 == pos_class or len(df[neg_class_1]) < 2):
-                neg_class_1 = np.random.choice(classes)
-            while ((neg_class_2 == pos_class) or (neg_class_2 == neg_class_1) or (len(df[neg_class_2]) < 2)):
-                neg_class_2 = np.random.choice(classes)
-            while ((neg_class_3 == pos_class) or (neg_class_3 == neg_class_1) or (neg_class_3 == neg_class_2) or (len(df[neg_class_3]) < 2)):
-                neg_class_3 = np.random.choice(classes)
-            while ((neg_class_4 == pos_class) or (neg_class_4 == neg_class_1) or (neg_class_4 == neg_class_2) or (neg_class_4 == neg_class_3) or (len(df[neg_class_4]) < 2)):
-                neg_class_4 = np.random.choice(classes)
-            while ((neg_class_5 == pos_class) or (neg_class_5 == neg_class_1) or (neg_class_5 == neg_class_2) or (neg_class_5 == neg_class_3) or (neg_class_5 == neg_class_4) or (len(df[neg_class_5]) < 2)):
-                neg_class_5 = np.random.choice(classes)
-                
-            # select two positive samples
-#             pos_sample_1 = df[pos_class][np.random.choice(df[pos_class].shape[0])]
-#             pos_sample_2 = df[pos_class][np.random.choice(df[pos_class].shape[0])]
-#             while (pos_sample_2 == pos_sample_1).all():
-#                 pos_sample_2 = df[pos_class][np.random.choice(df[pos_class].shape[0])]
-            arr = np.arange(df[pos_class].shape[0])
-            np.random.shuffle(arr)
-            for i in range(25):
-                if i == 0:
-                    MMD_NCA_Group = df[pos_class][arr[i]]
-                else:
-                    MMD_NCA_Group = np.concatenate((MMD_NCA_Group, df[pos_class][arr[i]]), axis = 0)
+            np.random.shuffle(classes_all)
+            classes = classes_all[:6]
+            classes.insert(0, classes_all[0])
             
-            # select two anchor positive samples
-#             pos_anchor_sample_1 = df[pos_class][np.random.choice(df[pos_class].shape[0])]
-#             while ((pos_anchor_sample_1 == pos_sample_1).all() or (pos_anchor_sample_1 == pos_sample_2).all()):
-#                 pos_anchor_sample_1 = df[pos_class][np.random.choice(df[pos_class].shape[0])]
-#             pos_anchor_sample_2 = df[pos_class][np.random.choice(df[pos_class].shape[0])]
-#             while ((pos_anchor_sample_2 == pos_sample_1).all() or (pos_anchor_sample_2 == pos_sample_2).all() or (pos_anchor_sample_2 == pos_anchor_sample_1).all()):
-#                 pos_anchor_sample_2 = df[pos_class][np.random.choice(df[pos_class].shape[0])]
-            arr = np.arange(df[pos_class].shape[0])
-            np.random.shuffle(arr)
-            for i in range(25):
-                MMD_NCA_Group = np.concatenate((MMD_NCA_Group, df[pos_class][arr[i]]), axis = 0)
-                
-            # select two negative 1 samples
-#             neg_1_sample_1 = df[neg_class_1][np.random.choice(df[neg_class_1].shape[0])]
-#             neg_1_sample_2 = df[neg_class_1][np.random.choice(df[neg_class_1].shape[0])]
-#             while (neg_1_sample_2 == neg_1_sample_1).all():
-#                 neg_1_sample_2 = df[neg_class_1][np.random.choice(df[neg_class_1].shape[0])]
-            arr = np.arange(df[neg_class_1].shape[0])
-            np.random.shuffle(arr)
-            for i in range(25):
-                MMD_NCA_Group = np.concatenate((MMD_NCA_Group, df[neg_class_1][arr[i]]), axis = 0)
-    
-            # select two negative 2 samples
-#             neg_2_sample_1 = df[neg_class_2][np.random.choice(df[neg_class_2].shape[0])]
-#             neg_2_sample_2 = df[neg_class_2][np.random.choice(df[neg_class_2].shape[0])]
-#             while (neg_2_sample_2 == neg_2_sample_1).all():
-#                 neg_2_sample_2 = df[neg_class_2][np.random.choice(df[neg_class_2].shape[0])]
-            arr = np.arange(df[neg_class_2].shape[0])
-            np.random.shuffle(arr)
-            for i in range(25):
-                MMD_NCA_Group = np.concatenate((MMD_NCA_Group, df[neg_class_2][arr[i]]), axis = 0)
-    
-            # select two negative 3 samples
-#             neg_3_sample_1 = df[neg_class_3][np.random.choice(df[neg_class_3].shape[0])]
-#             neg_3_sample_2 = df[neg_class_3][np.random.choice(df[neg_class_3].shape[0])]
-#             while (neg_3_sample_2 == neg_3_sample_1).all():
-#                 neg_3_sample_2 = df[neg_class_3][np.random.choice(df[neg_class_3].shape[0])]
-            arr = np.arange(df[neg_class_3].shape[0])
-            np.random.shuffle(arr)
-            for i in range(25):
-                MMD_NCA_Group = np.concatenate((MMD_NCA_Group, df[neg_class_3][arr[i]]), axis = 0)
-            
-            arr = np.arange(df[neg_class_4].shape[0])
-            np.random.shuffle(arr)
-            for i in range(25):
-                MMD_NCA_Group = np.concatenate((MMD_NCA_Group, df[neg_class_4][arr[i]]), axis = 0)
-                
-            arr = np.arange(df[neg_class_5].shape[0])
-            np.random.shuffle(arr)
-            for i in range(25):
-                MMD_NCA_Group = np.concatenate((MMD_NCA_Group, df[neg_class_5][arr[i]]), axis = 0)
-            
-#             MMD_NCA_Group = np.concatenate((pos_sample_1, pos_sample_2, pos_anchor_sample_1, pos_anchor_sample_2, \
-#                                           neg_1_sample_1, neg_1_sample_2, neg_2_sample_1, neg_2_sample_2, neg_3_sample_1, neg_3_sample_2), axis=0)
-            MMD_NCA_Groups.append(MMD_NCA_Group)
-            
-        return MMD_NCA_Groups
+            self.MMD_NCA_Classes.append(classes)
+
+            MMD_NCA_Group = []
+            for item_class in classes:
+                arr = np.arange(self.raw[item_class].shape[0])
+                np.random.shuffle(arr)
+                MMD_NCA_Group.append(arr[:25])
+
+            self.MMD_NCA_Groups.append(MMD_NCA_Group)
+        
+        gc.collect()
         
     def __getitem__(self, index):
-        # key stands for dictionary key, index stands for index for one group of MMD_NCA_Dataset
-        return self.training_MMD_NCA_Groups[index]
+        group = self.MMD_NCA_Groups[index]
+        classes = self.MMD_NCA_Classes[index]
+
+        item = self.raw[classes[0]][group[0][0]]
+        for j in range(1, 25):
+            item = np.concatenate((item, self.raw[classes[0]][group[0][j]]), axis = 0)
+
+        for i in range(1, 7):
+            for j in range(25):
+                item = np.concatenate((item, self.raw[classes[i]][group[i][j]]), axis = 0)
+
+        return item
         
     def __len__(self):
-        return len(self.training_MMD_NCA_Groups)
+        return self.num_MMD_NCA_Groups
 
 def train(model, train_loader, myloss, optimizer, epoch):
     model.train()
     for batch_idx, train_data in enumerate(train_loader):
         train_data = Variable(train_data).type(torch.cuda.DoubleTensor).squeeze().view(175,50,34).permute(1,0,2)
         optimizer.zero_grad()
-        # print(train_data.shape): [50, 175, 34], 50: squence length, 175: batch size, 34 input size
-        # print(train_data)
+        # train_data.shape: [50, 175, 34], 50: squence length, 175: batch size, 34 input size
         output = model(train_data)
-        # loss = myloss(output, train_data)
         loss = myloss(output)
         loss.backward()
         optimizer.step()
@@ -233,14 +149,4 @@ if __name__ == "__main__":
         if epoch % config.save_epoch == 0 and epoch != start_epoch:
             utils.save_model(epoch, model, optimizer)
         
-        if epoch % config.shuffle_dataset_epoch == 0 and epoch != start_epoch:
-            del train_loader
-            del train_data
-            gc.collect()
-            train_data = MMD_NCA_Dataset(os.path.join(config.dataset_dir, config.train_data), config.num_MMD_NCA_Groups)
-            train_loader = DataLoader(train_data, batch_size = 1, shuffle = True)
-        
         epoch += 1
-
-# save_models(num_epochs)
-
