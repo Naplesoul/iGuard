@@ -1,22 +1,14 @@
-from calendar import EPOCH
+import gc
+import os
+import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import numpy as np
-import math
-from torch import Tensor
-from torch.nn import Parameter
 from torch.autograd import Variable
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-import json
-from net import MMD_NCA_Net
-import os
-import gc
 
-num_epochs = 300000
-learning_rate = 0.0001
+import config
+import utils
 
 use_cuda = torch.cuda.is_available()
     
@@ -82,41 +74,15 @@ class MMD_NCA_loss(nn.Module):
 #        return numerator / denominator
         return loss
 
-class NumpyEncoder(json.JSONEncoder):
-    """ Special json encoder for numpy types """
-    def default(self, obj):
-        if isinstance(obj, (np.int_, np.intc, np.intp, np.int8,
-            np.int16, np.int32, np.int64, np.uint8,
-            np.uint16, np.uint32, np.uint64)):
-            return int(obj)
-        elif isinstance(obj, (np.float_, np.float16, np.float32, 
-            np.float64)):
-            return float(obj)
-        elif isinstance(obj,(np.ndarray,)): #### This is the fix
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj) 
-    
-def save_to_json(dic,target_dir):
-    dumped = json.dumps(dic, cls=NumpyEncoder)  
-    file = open(target_dir, 'w')  
-    json.dump(dumped, file)
-    file.close()
-    
-def read_from_json(target_dir):
-    f = open(target_dir,'r')
-    data = json.load(f)
-    # data = json.loads(data)
-    f.close()
-    return data
-
 class MMD_NCA_Dataset(Dataset):
     def __init__(self, json_name, num_MMD_NCA_Groups):
         # datafile
-        self.df = read_from_json(json_name)
-        for key in self.df:
-            self.df[key] = np.asarray(self.df[key])
+        df = utils.read_from_json(json_name)
+        for key in df:
+            df[key] = np.asarray(df[key])
+        gc.collect()
         self.num_MMD_NCA_Groups = num_MMD_NCA_Groups
-        self.training_MMD_NCA_Groups = self.generate_MMD_NCA_Dataset(self.df, self.num_MMD_NCA_Groups)
+        self.training_MMD_NCA_Groups = self.generate_MMD_NCA_Dataset(df, num_MMD_NCA_Groups)
     
     @staticmethod
     def generate_MMD_NCA_Dataset(df, num_MMD_NCA_Groups):
@@ -242,58 +208,38 @@ def train(model, train_loader, myloss, optimizer, epoch):
               100.*batch_idx/len(train_loader), 10000.*loss.data.cpu().numpy()))
         return loss
 
-def save(epoch, model: MMD_NCA_Net, optimizer: torch.optim.Adam):
-    print("saving epoch {}...".format(epoch))
-    checkpoint = "{}.pth".format(epoch)
-    torch.save({"epoch": epoch, "checkpoint": checkpoint}, "./log/model.meta")
-    torch.save({"net": model.state_dict(), "optimizer": optimizer.state_dict()}, "./log/{}".format(checkpoint))
-
-def load():
-    epoch = 0
-    model = MMD_NCA_Net().cuda().double()
-
-    if os.path.exists("./log/model.meta"):
-        meta = torch.load("./log/model.meta")
-        epoch = meta["epoch"]
-        checkpoint_filename = meta["checkpoint"]
-        checkpoint = torch.load("./log/{}".format(checkpoint_filename))
-
-        model.load_state_dict(checkpoint["net"])
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-        optimizer.load_state_dict(checkpoint["optimizer"])
-
-        print("loading from epoch {}...".format(epoch))
-
-    else:
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    
-    return (epoch, model, optimizer)
-
-
 if __name__ == "__main__":
-    epoch, model, optimizer = load()
-    criterion = MMD_NCA_loss()
-
     #generate training data
-    train_data = MMD_NCA_Dataset('./dataset/total.json', 4000)
+    train_data = MMD_NCA_Dataset(os.path.join(config.dataset_dir, config.train_data), config.num_MMD_NCA_Groups)
     train_loader = DataLoader(train_data, batch_size = 1, shuffle = True)
 
+    start_epoch, model, optimizer = utils.load_model()
+    epoch = start_epoch
+    criterion = MMD_NCA_loss()
     loss_total = 0.
-    while epoch <= num_epochs:
+
+    loss_log = open(os.path.join(config.model_dir, "loss.log"), "a")
+
+    while epoch <= config.num_epochs:
         loss = train(model, train_loader, criterion, optimizer, epoch)
         loss_total += loss.data.cpu().numpy()
-        if epoch % 2000 == 0:
-            print('loss mean after {} epochs: {}'.format(epoch, loss_total / 2000))
+
+        if epoch % config.show_loss_epoch == 0 and epoch != start_epoch:
+            loss_log.write("epoch: {}, loss: {}\n".format(epoch, loss_total / config.show_loss_epoch))    
+            loss_log.flush()
+            print('loss mean after {} epochs: {}'.format(epoch, loss_total / config.show_loss_epoch))    
             loss_total = 0.
-            save(epoch, model, optimizer)
-        if epoch % 10000 == 0:
-            train_data = []
-            train_loader = []
+        
+        if epoch % config.save_epoch == 0 and epoch != start_epoch:
+            utils.save_model(epoch, model, optimizer)
+        
+        if epoch % config.shuffle_dataset_epoch == 0 and epoch != start_epoch:
             del train_loader
             del train_data
             gc.collect()
-            train_data = MMD_NCA_Dataset('./dataset/total.json', 4000)
+            train_data = MMD_NCA_Dataset(os.path.join(config.dataset_dir, config.train_data), config.num_MMD_NCA_Groups)
             train_loader = DataLoader(train_data, batch_size = 1, shuffle = True)
+        
         epoch += 1
 
 # save_models(num_epochs)
