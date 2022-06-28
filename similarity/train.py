@@ -119,9 +119,7 @@ def train(model, train_loader, myloss, optimizer, epoch):
         loss = myloss(output)
         loss.backward()
         optimizer.step()
-        print('Train Epoch: {} [{}/{} ({:.0f}%)]\tloss: {:.6f}'.format(
-              epoch, batch_idx*len(train_data), len(train_loader.dataset),
-              100.*batch_idx/len(train_loader), 10000.*loss.data.cpu().numpy()))
+        print('Train Epoch: {} \tloss: {:.2f}'.format(epoch, 10000.*loss.data.cpu().numpy()))
         return loss
 
 if __name__ == "__main__":
@@ -148,5 +146,12 @@ if __name__ == "__main__":
         
         if epoch % config.save_epoch == 0 and epoch != start_epoch:
             utils.save_model(epoch, model, optimizer)
+        
+        if epoch & config.shuffle_epoch == 0 and epoch != start_epoch:
+            del train_data
+            del train_loader
+            gc.collect()
+            train_data = MMD_NCA_Dataset(os.path.join(config.dataset_dir, config.train_data), config.num_MMD_NCA_Groups)
+            train_loader = DataLoader(train_data, batch_size = 1, shuffle = True)
         
         epoch += 1
