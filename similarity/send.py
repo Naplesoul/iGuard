@@ -5,7 +5,7 @@ from time import sleep
 
 data_dir = "./dataset/processed"
 motion_name = "walk"
-framerate = 120
+framerate = 15
 send_serial_id = 0
 
 ip = "192.168.0.111"
