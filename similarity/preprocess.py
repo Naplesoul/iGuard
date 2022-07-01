@@ -1,3 +1,4 @@
+import numbers
 import os
 import json
 import threading
@@ -20,14 +21,27 @@ used_joints = ['head', 'lowerneck', 'lowerback', 'root', 'thorax',
 output_framerate = 15
 
 classes = [
-    "walk"
+    "wrench",
+    "wash",
+    "sweep",
+    "laugh",
+    "screw"
 ]
 
-def process_serial(json, input_framerate):
+def process_serial(json, input_framerate, start_sec, end_sec):
     serial = []
     sample_rate = input_framerate / output_framerate
-    l = len(json[joints[0]])
-    for i in range(l):
+
+    if start_sec < 0:
+        start = 0
+        end = len(json[joints[0]])
+    else:
+        start = int(start_sec * input_framerate)
+        end = int(end_sec * input_framerate)
+        if end > len(json[joints[0]]):
+            end = len(json[joints[0]])
+    
+    for i in range(start, end):
         if i % sample_rate != 0:
             continue
 
@@ -47,7 +61,10 @@ def process_class(classname, trails):
         serial = json.load(f)
         f.close()
 
-        output.append(process_serial(serial, trial[1]))
+        if isinstance(trial[2], (int, float)):
+            output.append(process_serial(serial, trial[1], trial[2], trial[3]))
+        else:
+            output.append(process_serial(serial, trial[1], -1, -1))
 
     out_path = os.path.join(out_dir, classname + ".json")
     o = open(out_path, "w+")
