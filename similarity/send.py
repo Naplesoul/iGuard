@@ -1,21 +1,22 @@
 import os
 import json
 import socket
+import sys
 from time import sleep
 
 data_dir = "./dataset/processed"
-motion_name = "walk"
 framerate = 15
-send_serial_id = 0
 
 ip = "192.168.0.111"
 port = 50002
 
 if __name__ == "__main__":
+    send_serial_id = int(sys.argv[len(sys.argv) - 1])
+    motion_name = sys.argv[len(sys.argv) - 2]
     f = open(os.path.join(data_dir, motion_name + ".json"), "r")
     motion = json.load(f)
     f.close()
-    serial = motion[motion_name][send_serial_id]
+    serial = motion[send_serial_id]
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
