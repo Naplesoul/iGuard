@@ -7,7 +7,7 @@ from time import sleep
 import config
 
 data_dir = config.processed_dir
-framerate = config.train_framerate
+framerate = config.model_framerate
 
 ip = "192.168.0.111"
 port = 50002

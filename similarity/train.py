@@ -69,15 +69,14 @@ class MMD_NCA_Dataset(Dataset):
             available_dataset = []
             for i in range(len(trials)):
                 serial_len = len(trials[i])
-                max_serial_start_idx = serial_len - config.train_length * config.train_framerate
+                max_serial_start_idx = serial_len - config.input_length_sec * config.model_framerate
                 for j in range(max_serial_start_idx):
+                    # [trial_idx, serial_idx]
                     available_dataset.append([i, j])
             
             available_datasets[motion_class[0]] = available_dataset
 
         self.num_MMD_NCA_Groups = num_MMD_NCA_Groups
-        for key in self.raw:
-            self.raw[key] = np.asarray(self.raw[key])
         gc.collect()
 
         # [[[index of motion * 25] * 7 classes] * num_MMD_NCA_Groups]
@@ -103,22 +102,23 @@ class MMD_NCA_Dataset(Dataset):
         gc.collect()
         
     def __getitem__(self, index):
+        print(index)
         group = self.MMD_NCA_Groups[index]
         classes = self.MMD_NCA_Classes[index]
 
         trial_idx = group[0][0][0]
         serial_start_idx = group[0][0][1]
-        item = self.raw[classes[0]][trial_idx][serial_start_idx : serial_start_idx + config.train_frames]
+        item = self.raw[classes[0]][trial_idx][serial_start_idx : serial_start_idx + config.input_length]
         for j in range(1, 25):
             trial_idx = group[0][j][0]
             serial_start_idx = group[0][j][1]
-            item = np.concatenate((item, self.raw[classes[0]][trial_idx][serial_start_idx : serial_start_idx + config.train_frames]), axis = 0)
+            item = np.concatenate((item, self.raw[classes[0]][trial_idx][serial_start_idx : serial_start_idx + config.input_length]), axis = 0)
 
         for i in range(1, 7):
             for j in range(25):
                 trial_idx = group[i][j][0]
                 serial_start_idx = group[i][j][1]
-                item = np.concatenate((item, self.raw[classes[i]][trial_idx][serial_start_idx : serial_start_idx + config.train_frames]), axis = 0)
+                item = np.concatenate((item, self.raw[classes[i]][trial_idx][serial_start_idx : serial_start_idx + config.input_length]), axis = 0)
 
         return item
         
@@ -128,9 +128,9 @@ class MMD_NCA_Dataset(Dataset):
 def train(model, train_loader, myloss, optimizer, epoch):
     model.train()
     for batch_idx, train_data in enumerate(train_loader):
-        train_data = Variable(train_data).type(torch.cuda.DoubleTensor).squeeze().view(175,50,config.input_size).permute(1,0,2)
+        train_data = Variable(train_data).type(torch.cuda.DoubleTensor).squeeze().view(175, config.input_length, config.feature_size).permute(1,0,2)
         optimizer.zero_grad()
-        # train_data.shape: [50, 175, 34], 50: squence length, 175: batch size, 34 input size
+        # train_data.shape: [50, 175, 57], 50: squence length, 175: batch size, 57 input size
         output = model(train_data)
         loss = myloss(output)
         loss.backward()
