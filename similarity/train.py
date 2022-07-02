@@ -1,5 +1,6 @@
 import gc
 import os
+from time import time
 import numpy as np
 import torch
 import torch.nn as nn
@@ -117,7 +118,7 @@ class MMD_NCA_Dataset(Dataset):
             for j in range(25):
                 trial_idx = group[i][j][0]
                 serial_start_idx = group[i][j][1]
-                item = np.concatenate((item, self.raw[classes[0]][trial_idx][serial_start_idx : serial_start_idx + config.train_frames]), axis = 0)
+                item = np.concatenate((item, self.raw[classes[i]][trial_idx][serial_start_idx : serial_start_idx + config.train_frames]), axis = 0)
 
         return item
         
@@ -162,7 +163,7 @@ if __name__ == "__main__":
         if epoch % config.save_epoch == 0 and epoch != start_epoch:
             utils.save_model(epoch, model, optimizer)
         
-        if epoch & config.shuffle_epoch == 0 and epoch != start_epoch:
+        if epoch % config.shuffle_epoch == 0 and epoch != start_epoch:
             del train_data
             del train_loader
             gc.collect()
