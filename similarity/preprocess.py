@@ -23,7 +23,7 @@ classes = config.train_classes
 
 def process_serial(json, input_framerate, start_sec, end_sec, scale):
     serial = []
-    sample_rate = int(input_framerate / config.train_framerate)
+    sample_rate = int(input_framerate / config.model_framerate)
 
     if start_sec < 0:
         start = 0
@@ -34,14 +34,14 @@ def process_serial(json, input_framerate, start_sec, end_sec, scale):
         if end > len(json[joints[0]]):
             end = len(json[joints[0]])
     
-    if end - start < config.train_length * input_framerate:
-        if end - start < scale * config.train_length * input_framerate:
-            print("dataset not sufficient for training: {} / {}, skipping...".format(end - start, config.train_length * input_framerate))
+    if end - start < config.input_length_sec * input_framerate:
+        if end - start < scale * config.input_length_sec * input_framerate:
+            print("dataset not sufficient for training: {} / {}, skipping...".format(end - start, config.input_length_sec * input_framerate))
             return []
         
-        required_frames = (config.train_length + 1) * config.train_framerate
+        required_frames = (config.input_length_sec + 1) * config.model_framerate
         sample_rate = int((end - start) / required_frames)
-        print("dataset not sufficient for training: {} / {}, change sample rate to {}".format(end - start, config.train_length * input_framerate, sample_rate))
+        print("dataset not sufficient for training: {} / {}, change sample rate to {}".format(end - start, config.input_length_sec * input_framerate, sample_rate))
     else:
         print("dataset ok")
 

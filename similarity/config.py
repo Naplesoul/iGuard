@@ -20,14 +20,14 @@ train_classes = [
     ["run", 0.2],
 ]
 
-train_length = 5
-train_framerate = 10
-train_frames = train_length * train_framerate
-
-input_size = 19 * 3
+input_length_sec = 5
+model_framerate = 10
+feature_size = 19 * 3
 learning_rate = 0.0001
-num_epochs = 300000
-save_epoch = 10000
-shuffle_epoch = 300000
-show_loss_epoch = 1000
-num_MMD_NCA_Groups = 50000
+num_epochs = 50000
+save_epoch = 1000
+shuffle_epoch = 2000
+show_loss_epoch = 100
+num_MMD_NCA_Groups = 3000
+
+input_length = input_length_sec * model_framerate
