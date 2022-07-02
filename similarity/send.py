@@ -4,8 +4,10 @@ import socket
 import sys
 from time import sleep
 
-data_dir = "./dataset/processed"
-framerate = 15
+import config
+
+data_dir = config.processed_dir
+framerate = config.train_framerate
 
 ip = "192.168.0.111"
 port = 50002
