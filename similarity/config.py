@@ -1,9 +1,27 @@
-from random import shuffle
-
-
 model_dir = "./model"
 dataset_dir = "./dataset"
 train_data = "total.json"
+
+html = "./dataset/raw/mocap.html"
+xyz_dir = "./dataset/xyz"
+meta_dir = "./dataset/meta"
+processed_dir = "./dataset/processed"
+
+train_classes = [
+    ["wrench", 0.5],
+    ["wash", 0.5],
+    ["sweep", 0.5],
+    ["laugh", 0.5],
+    ["screw", 0.5],
+    ["hammer", 0.5],
+    ["climb", 0.5],
+    ["coil", 0.5],
+    ["walk", 0.5],
+    ["run", 0.2],
+]
+
+train_length = 5
+train_framerate = 15
 
 learning_rate = 0.0001
 num_epochs = 300000

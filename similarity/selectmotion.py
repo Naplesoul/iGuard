@@ -2,8 +2,10 @@ import os
 import sys
 from bs4 import BeautifulSoup
 
-html = "./dataset/raw/mocap.html"
-out_dir = "./dataset/meta"
+import config
+
+html = config.html
+out_dir = config.meta_dir
 
 def find_all(filename, key):
     f = open(filename, "r")
