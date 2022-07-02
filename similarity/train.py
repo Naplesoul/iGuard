@@ -55,20 +55,29 @@ class MMD_NCA_loss(nn.Module):
         return loss
 
 class MMD_NCA_Dataset(Dataset):
-    def __init__(self, json_name, num_MMD_NCA_Groups):
+    def __init__(self, dir, num_MMD_NCA_Groups):
+        self.raw = {}
+        available_datasets = {}
+        classes_all = []
+        for motion_class in config.train_classes:
+            classes_all.append(motion_class[0])
+            path = os.path.join(dir, motion_class[0] + ".json")
+            trials = utils.read_from_json(path)
+            self.raw[motion_class[0]] = trials
+
+            available_dataset = []
+            for i in range(len(trials)):
+                serial_len = len(trials[i])
+                max_serial_start_idx = serial_len - config.train_length * config.train_framerate
+                for j in range(max_serial_start_idx):
+                    available_dataset.append([i, j])
+            
+            available_datasets[motion_class[0]] = available_dataset
+
         self.num_MMD_NCA_Groups = num_MMD_NCA_Groups
-        self.raw = utils.read_from_json(json_name)
         for key in self.raw:
             self.raw[key] = np.asarray(self.raw[key])
         gc.collect()
-
-        classes_all = []
-        for key in self.raw:
-            if len(self.raw[key]) >= 2:
-                classes_all.append(key)
-        if len(classes_all) < 6:
-            print("Training dataset is not sufficient.")
-            exit(-1)
 
         # [[[index of motion * 25] * 7 classes] * num_MMD_NCA_Groups]
         self.MMD_NCA_Groups = []
@@ -84,25 +93,31 @@ class MMD_NCA_Dataset(Dataset):
 
             MMD_NCA_Group = []
             for item_class in classes:
-                arr = np.arange(self.raw[item_class].shape[0])
-                np.random.shuffle(arr)
-                MMD_NCA_Group.append(arr[:25])
+                np.random.shuffle(available_datasets[item_class])
+                MMD_NCA_Group.append(available_datasets[item_class][:25])
 
             self.MMD_NCA_Groups.append(MMD_NCA_Group)
         
+        del available_datasets
         gc.collect()
         
     def __getitem__(self, index):
         group = self.MMD_NCA_Groups[index]
         classes = self.MMD_NCA_Classes[index]
 
-        item = self.raw[classes[0]][group[0][0]]
+        trial_idx = group[0][0][0]
+        serial_start_idx = group[0][0][1]
+        item = self.raw[classes[0]][trial_idx][serial_start_idx : serial_start_idx + config.train_frames]
         for j in range(1, 25):
-            item = np.concatenate((item, self.raw[classes[0]][group[0][j]]), axis = 0)
+            trial_idx = group[0][j][0]
+            serial_start_idx = group[0][j][1]
+            item = np.concatenate((item, self.raw[classes[0]][trial_idx][serial_start_idx : serial_start_idx + config.train_frames]), axis = 0)
 
         for i in range(1, 7):
             for j in range(25):
-                item = np.concatenate((item, self.raw[classes[i]][group[i][j]]), axis = 0)
+                trial_idx = group[i][j][0]
+                serial_start_idx = group[i][j][1]
+                item = np.concatenate((item, self.raw[classes[0]][trial_idx][serial_start_idx : serial_start_idx + config.train_frames]), axis = 0)
 
         return item
         
@@ -112,7 +127,7 @@ class MMD_NCA_Dataset(Dataset):
 def train(model, train_loader, myloss, optimizer, epoch):
     model.train()
     for batch_idx, train_data in enumerate(train_loader):
-        train_data = Variable(train_data).type(torch.cuda.DoubleTensor).squeeze().view(175,50,34).permute(1,0,2)
+        train_data = Variable(train_data).type(torch.cuda.DoubleTensor).squeeze().view(175,50,config.input_size).permute(1,0,2)
         optimizer.zero_grad()
         # train_data.shape: [50, 175, 34], 50: squence length, 175: batch size, 34 input size
         output = model(train_data)
@@ -124,7 +139,7 @@ def train(model, train_loader, myloss, optimizer, epoch):
 
 if __name__ == "__main__":
     #generate training data
-    train_data = MMD_NCA_Dataset(os.path.join(config.dataset_dir, config.train_data), config.num_MMD_NCA_Groups)
+    train_data = MMD_NCA_Dataset(config.processed_dir, config.num_MMD_NCA_Groups)
     train_loader = DataLoader(train_data, batch_size = 1, shuffle = True)
 
     start_epoch, model, optimizer = utils.load_model()
@@ -151,7 +166,7 @@ if __name__ == "__main__":
             del train_data
             del train_loader
             gc.collect()
-            train_data = MMD_NCA_Dataset(os.path.join(config.dataset_dir, config.train_data), config.num_MMD_NCA_Groups)
+            train_data = MMD_NCA_Dataset(config.processed_dir, config.num_MMD_NCA_Groups)
             train_loader = DataLoader(train_data, batch_size = 1, shuffle = True)
         
         epoch += 1
