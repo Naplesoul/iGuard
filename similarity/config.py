@@ -21,8 +21,10 @@ train_classes = [
 ]
 
 train_length = 5
-train_framerate = 15
+train_framerate = 10
+train_frames = train_length * train_framerate
 
+input_size = 19 * 3
 learning_rate = 0.0001
 num_epochs = 300000
 save_epoch = 10000

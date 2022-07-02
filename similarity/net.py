@@ -1,12 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
-import numpy as np
-import math
-from torch import Tensor
-from torch.nn import Parameter
-from torch.autograd import Variable
+
+import config
 
 use_cuda = torch.cuda.is_available()
 
@@ -45,7 +41,7 @@ class A_LSTM(nn.Module):
         super(A_LSTM, self).__init__()
         # input size?
 #         self.lnlstm = LNLSTM(30,64,2)#input,output,layer num_layers=1
-        self.gru = nn.GRU(input_size=34, hidden_size=128,num_layers=2,bidirectional=True)
+        self.gru = nn.GRU(input_size=config.input_size, hidden_size=128,num_layers=2,bidirectional=True)
         self.bn1 = nn.BatchNorm1d(50)
         #self.selfattention = SelfAttention(128)
         # fix attention output size to 25
@@ -58,7 +54,7 @@ class A_LSTM(nn.Module):
         self.dropout2 = nn.Dropout(0.5)
         self.fc3 = nn.Linear(320, 128)
         self.bn4 = nn.BatchNorm1d(128)
-        self.bn5 = nn.BatchNorm1d(34)
+        self.bn5 = nn.BatchNorm1d(config.input_size)
         
     def forward(self, x):#input should be length,bsz,30
         length,bsz,feature = x.shape
