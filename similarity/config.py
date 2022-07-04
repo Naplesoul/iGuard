@@ -20,6 +20,10 @@ train_classes = [
     ["coil", 0.5],
     ["walk", 0.5],
     ["run", 0.2],
+    ["cry", 0.5],
+    ["squat", 0.5],
+    ["wave", 0.5],
+    
 ]
 
 input_length_sec = 5
