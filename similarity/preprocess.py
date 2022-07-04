@@ -39,7 +39,7 @@ def process_serial(json, input_framerate, start_sec, end_sec, scale):
             print("dataset not sufficient for training: {} / {}, skipping...".format(end - start, config.input_length_sec * input_framerate))
             return []
         
-        required_frames = (config.input_length_sec + 1) * config.model_framerate
+        required_frames = config.ideal_input_length_sec * config.model_framerate
         sample_rate = int((end - start) / required_frames)
         print("dataset not sufficient for training: {} / {}, change sample rate to {}".format(end - start, config.input_length_sec * input_framerate, sample_rate))
     else:
