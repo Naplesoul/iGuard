@@ -21,7 +21,7 @@ if __name__ == "__main__":
         serial_len = len(data[i])
         max_serial_start_idx = serial_len - config.input_length_sec * config.model_framerate
         start_idx = random.randint(0, max_serial_start_idx)
-        data[i] = data[i][start_idx, start_idx + config.input_length_sec * config.model_framerate]
+        data[i] = data[i][start_idx : start_idx + config.input_length_sec * config.model_framerate]
 
     epoch, model, optimizer = utils.load_model()
     model = model.eval().cuda()
