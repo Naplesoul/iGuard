@@ -1,11 +1,13 @@
 model_dir = "./model"
-dataset_dir = "./dataset"
-train_data = "total.json"
 
 html = "./dataset/raw/mocap.html"
 xyz_dir = "./dataset/xyz"
 meta_dir = "./dataset/meta"
+record_dir = "./dataset/record"
 processed_dir = "./dataset/processed"
+
+server_ip = "192.168.0.111"
+server_port = 50002
 
 train_classes = [
     ["wrench", 0.5],
@@ -30,4 +32,5 @@ shuffle_epoch = 2000
 show_loss_epoch = 100
 num_MMD_NCA_Groups = 3000
 
+ideal_input_length_sec = input_length_sec + 1
 input_length = input_length_sec * model_framerate
