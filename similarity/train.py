@@ -101,7 +101,6 @@ class MMD_NCA_Dataset(Dataset):
         gc.collect()
         
     def __getitem__(self, index):
-        print(index)
         group = self.MMD_NCA_Groups[index]
         classes = self.MMD_NCA_Classes[index]
 
