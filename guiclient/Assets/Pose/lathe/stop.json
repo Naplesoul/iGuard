@@ -1,5 +1,6 @@
 {
-    "pose": "开机/关机",
+    "pose": "关机",
+    "danger": true,
     "node_num": 25,
     "nodes": [
         {
