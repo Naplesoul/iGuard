@@ -1,3 +1,6 @@
+from re import T
+
+
 model_dir = "./model"
 
 html = "./dataset/raw/mocap.html"
@@ -8,6 +11,8 @@ processed_dir = "./dataset/processed"
 
 server_ip = "192.168.0.111"
 server_port = 50002
+
+infer_on_cuda = True
 
 train_classes = [
     ["wrench", 0.5],

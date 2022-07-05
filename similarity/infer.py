@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import random
+from time import time
 import torch
 
 import utils
@@ -24,9 +25,28 @@ if __name__ == "__main__":
         data[i] = data[i][start_idx : start_idx + config.input_length_sec * config.model_framerate]
 
     epoch, model, optimizer = utils.load_model()
-    model = model.eval().cuda()
+    model = model.eval()
+    if config.infer_on_cuda:
+        model = model.cuda()
 
-    input = torch.tensor(data)
-    input = input.type(torch.cuda.DoubleTensor).squeeze().view(-1, config.input_length, config.feature_size).permute(1,0,2)
-    output = model(input)
-    print(output)
+    test_cnt = 20
+    total_time = 0
+    if config.infer_on_cuda:
+        for _ in range(test_cnt):
+            start = time()
+            input = torch.tensor(data)
+            input = input.type(torch.cuda.DoubleTensor).squeeze().view(-1, config.input_length, config.feature_size).permute(1,0,2)
+            output = model(input)
+            end = time()
+            total_time += end - start
+    else:
+        for _ in range(test_cnt):
+            start = time()
+            input = torch.tensor(data)
+            input = input.type(torch.DoubleTensor).squeeze().view(-1, config.input_length, config.feature_size).permute(1,0,2)
+            output = model(input)
+            end = time()
+            total_time += end - start
+            
+    print("output:", output)
+    print("avg infer latency: {} ms".format(int(total_time * 1000 / test_cnt)))
