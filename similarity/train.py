@@ -60,7 +60,6 @@ class MMD_NCA_Dataset(Dataset):
         available_datasets = {}
         classes_all = []
         for motion_class in config.train_classes:
-            classes_all.append(motion_class[0])
             path = os.path.join(dir, motion_class[0] + ".json")
             trials = utils.read_from_json(path)
             self.raw[motion_class[0]] = trials
@@ -73,6 +72,12 @@ class MMD_NCA_Dataset(Dataset):
                     # [trial_idx, serial_idx]
                     available_dataset.append([i, j])
             
+            if len(available_dataset) <= 25:
+                print("too few dataset: {}: {} available dataset".format(motion_class[0], len(available_dataset)))
+                continue
+
+            print("{}: {} available dataset".format(motion_class[0], len(available_dataset)))
+            classes_all.append(motion_class[0])
             available_datasets[motion_class[0]] = available_dataset
 
         self.num_MMD_NCA_Groups = num_MMD_NCA_Groups
