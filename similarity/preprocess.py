@@ -55,8 +55,9 @@ def process_serial(json, input_framerate, start_sec, end_sec, scale):
         serial.append(vector)
     return serial
 
-def process_class(classname, trails, sclae):
+def process_class(classname, trails, scale):
     outputs = []
+    print("\n\nprocessing " + classname)
     for trial in trails:
         split = trial[0].split("-")
         folder = split[0]
