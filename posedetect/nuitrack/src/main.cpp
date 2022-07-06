@@ -15,9 +15,9 @@
 
 using namespace tdv::nuitrack;
 
-DetectClient *client = nullptr;
+std::vector<DetectClient *> clients;
 uint64_t frameId = 0;
-int fps = 15;
+int fps = 10;
 
 std::chrono::system_clock::time_point stringToDateTime(const std::string &s)
 {
@@ -27,7 +27,7 @@ std::chrono::system_clock::time_point stringToDateTime(const std::string &s)
     return std::chrono::system_clock::from_time_t(mktime(&timeDate));
 }
 
-std::chrono::system_clock::time_point firstFrameTime = stringToDateTime("2022-06-21 00:00::00");
+std::chrono::system_clock::time_point firstFrameTime = stringToDateTime("2022-07-06 00:00::00");
 
 uint64_t waitUntilNextFrame()
 {
@@ -62,7 +62,9 @@ void onSkeletonUpdate(SkeletonData::Ptr skeletonData)
         return;
     }
 
-    client->update(frameId, userSkeletons[0]);
+    for (auto client : clients) {
+        client->update(frameId, userSkeletons[0]);
+    }
 }
 
 bool finished;
@@ -125,8 +127,12 @@ int main(int argc, char* argv[])
 
     std::cout << "M_inv:\n" << M_inv << "\n";
 
-    client = new DetectClient(config["serverIp"].asCString(), config["serverPort"].asInt(),
-                              config["cameraId"].asInt(), M_inv, config["smooth"].asFloat());
+    Json::Value server_ips = config["serverIps"];
+    Json::Value server_ports = config["serverPorts"];
+    for (int i = 0; i < server_ips.size(); ++i) {
+        clients.push_back(new DetectClient(server_ips[i].asCString(), server_ports[i].asInt(),
+                                           config["cameraId"].asInt(), M_inv, config["smooth"].asFloat()));
+    }
 
     // Initialize Nuitrack
     try
@@ -203,8 +209,10 @@ int main(int argc, char* argv[])
     try
     {
         Nuitrack::release();
-        delete client;
-        client = nullptr;
+        for (auto client : clients) {
+            delete client;
+        }
+        clients.clear();
     }
     catch (const Exception& e)
     {

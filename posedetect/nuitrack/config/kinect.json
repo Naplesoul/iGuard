@@ -1,6 +1,6 @@
 {
-    "serverIp": "192.168.0.111",
-    "serverPort": 50002,
+    "serverIps": ["192.168.0.111"],
+    "serverPorts": [50002],
     "fps": 15,
     "cameraId": 1,
     "deviceName": "Kinect v2",
