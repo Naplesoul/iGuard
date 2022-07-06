@@ -14,7 +14,7 @@ class SelfAttentiveEncoder(nn.Module):
         self.ws1 = nn.Linear(256, 20, bias=False)
         self.ws2 = nn.Linear(20, 1, bias=False)
         self.tanh = nn.Tanh()
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=1)
         # self.init_weights()
         self.attention_hops = 1
 

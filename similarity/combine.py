@@ -17,7 +17,7 @@ if __name__ == "__main__":
             f.close()
             records.append(record)
         else:
-            filename = os.path.join(config.meta_dir, arg + ".json")
+            filename = os.path.join(config.processed_dir, arg + ".json")
             out_filename = filename
             if os.path.exists(filename):
                 f = open(filename)
