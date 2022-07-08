@@ -6,8 +6,11 @@ meta_dir = "./dataset/meta"
 record_dir = "./dataset/record"
 processed_dir = "./dataset/processed"
 
-server_ip = "192.168.0.111"
-server_port = 50002
+skeleton_ip = "192.168.0.111"
+skeleton_port = 50002
+
+similarity_ip = "192.168.0.111"
+similarity_port = 50003
 
 use_cuda = True
 
