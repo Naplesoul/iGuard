@@ -20,6 +20,7 @@ public class KeyPack_Vector3{
 public class KeyPack_NodeInfo{
     public int node_num;
     public string pose;
+    public bool danger;
     public KeyPack_Vector3[] nodes;
 }
 
@@ -69,21 +70,23 @@ public class Skeleton : MonoBehaviour
 
     public Material keyMat;
     public Material defMat;
+    public Material preMat;
+    public Material dangerMat;
     public Text dangerText;
     public Text simiText;
     public Text nextText;
     public Text timeText;
+    public Text hideText;
 
-    public GameObject cc;
-    //public GameObject zc;
+    public GameObject lathe;
+    public GameObject driller;
+    private GameObject currentObject;
 
     private KeyPack_Vector3[][][] savePos;
 
     // Start is called before the first frame update
     void Start()
     {
-        cc.SetActive(true);
-        //zc.SetActive(false);
         nodes = new GameObject[25];
         bones = new GameObject[18];
         nodePos = new Vector3[25];
@@ -103,8 +106,10 @@ public class Skeleton : MonoBehaviour
         for (int i = 1; i < 25 ;i ++){
             if (i == 10 || i == 16 || i == 20 || i == 24) continue;
             nodes[i] = GameObject.Instantiate(nodePrefab, new Vector3(0, -10, 0), new Quaternion());
+            nodes[i].name = "node-" + i;
             //keyNodes[i] = GameObject.Instantiate(kPrefab, new Vector3(0, -10, 0), new Quaternion());
             preNodes[i] = GameObject.Instantiate(pPrefab, new Vector3(0, -10, 0), new Quaternion());
+            preNodes[i].name = "pNode-" + i;
         }
         nodes[0] = null;
         nodes[10] = null;
@@ -113,6 +118,7 @@ public class Skeleton : MonoBehaviour
         nodes[24] = null;
         for (int i = 0; i < 18 ;i ++){
             bones[i] = GameObject.Instantiate(bonePrefab, new Vector3(0, -10, 0), new Quaternion());
+            bones[i].name = "bone-" + i;
             keyBones[i] = GameObject.Instantiate(bonePrefab, new Vector3(0, -10, 0), new Quaternion());
             keyBones[i].GetComponent<MeshRenderer>().material = keyMat;
         }
@@ -223,6 +229,15 @@ public class Skeleton : MonoBehaviour
             LoadKeyPos(keyPoseList[currKeyPoseIndex]);
         }else {
             nextText.text = "无关键步骤信息";
+            foreach (Transform child in currentObject.transform)
+            {
+                if(child.gameObject.name.Contains("danger")){
+                    CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+                    collider.enabled = false;
+                    child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                    break;
+                }
+            }
         }
     }
 
@@ -236,6 +251,20 @@ public class Skeleton : MonoBehaviour
             keyPose[i].x = node_info.nodes[i].x / 1000;
             keyPose[i].y = node_info.nodes[i].y / 1000;
             keyPose[i].z = node_info.nodes[i].z / 1000;
+        }
+        foreach (Transform child in currentObject.transform)
+        {
+            if(child.gameObject.name.Contains("danger")){
+                CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+                if (node_info.danger){
+                    collider.enabled = true;
+                    child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+                }else{
+                    collider.enabled = false;
+                    child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                }
+                break;
+            }
         }
         nextText.text = "请执行关键步骤("+ (currKeyPoseIndex + 1) +"/"+ keyPoseList.Length +")：" + node_info.pose;
     }
@@ -353,14 +382,16 @@ public class Skeleton : MonoBehaviour
 
     public void CaseChanged(int value){
         Debug.Log("Change to mode " + value);
-        cc.SetActive(value == 0);
-        //zc.SetActive(value == 1);
+        lathe.SetActive(value == 0);
+        driller.SetActive(value == 1);
         if (value == 0){
-            keyPoseList = new string[3]{"switch", "tighten", "switch"};
+            currentObject = lathe;
+            keyPoseList = new string[5]{"lathe/tighten", "lathe/start", "lathe/cut", "lathe/stop", "lathe/release"};
             currKeyPoseIndex = -1;
             NextKeyPos();
         }else if (value == 1){
-            keyPoseList = new string[3]{"tighten", "cut", "tighten"};
+            currentObject = driller;
+            keyPoseList = new string[5]{"driller/tighten", "driller/start", "driller/drill", "driller/stop", "driller/release"};
             currKeyPoseIndex = -1;
             NextKeyPos();
         }

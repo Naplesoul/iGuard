@@ -9,6 +9,8 @@ processed_dir = "./dataset/processed"
 server_ip = "192.168.0.111"
 server_port = 50002
 
+use_cuda = True
+
 train_classes = [
     ["wrench", 0.5],
     ["wash", 0.5],

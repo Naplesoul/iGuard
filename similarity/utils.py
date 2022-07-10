@@ -1,4 +1,3 @@
-import numbers
 import os
 import json
 from tokenize import Number
@@ -41,9 +40,12 @@ def save_model(epoch, model: MMD_NCA_Net, optimizer: torch.optim.Adam):
     torch.save({"epoch": epoch, "checkpoint": checkpoint}, os.path.join(config.model_dir, "model.meta"))
     torch.save({"net": model.state_dict(), "optimizer": optimizer.state_dict()}, os.path.join(config.model_dir, checkpoint))
 
-def load_model():
+def load_model(use_cuda=True):
     start_epoch = 0
-    model = MMD_NCA_Net().cuda().double()
+    if use_cuda:
+        model = MMD_NCA_Net().cuda().double()
+    else:
+        model = MMD_NCA_Net().double()
 
     if os.path.exists(os.path.join(config.model_dir, "model.meta")):
         meta = torch.load(os.path.join(config.model_dir, "model.meta"))

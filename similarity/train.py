@@ -146,7 +146,7 @@ if __name__ == "__main__":
     train_data = MMD_NCA_Dataset(config.processed_dir, config.num_MMD_NCA_Groups)
     train_loader = DataLoader(train_data, batch_size = 1, shuffle = True)
 
-    start_epoch, model, optimizer = utils.load_model()
+    start_epoch, model, optimizer = utils.load_model(config.use_cuda)
     epoch = start_epoch
     criterion = MMD_NCA_loss()
     loss_total = 0.
