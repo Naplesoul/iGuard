@@ -5,10 +5,14 @@ import socket
 
 import config
 
-frame_num = config.ideal_input_length_sec * config.model_framerate
+# frame_num = config.ideal_input_length_sec * config.model_framerate
 
 if __name__ == "__main__":
+    if not os.path.exists(config.record_dir):
+        os.makedirs(config.record_dir)
+
     while 1:
+        frame_num = int(input("> frame num? "))
         filename = input(">") + ".json"
         print("start recording " + str(frame_num) + " frames")
 
