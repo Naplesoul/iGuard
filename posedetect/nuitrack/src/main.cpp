@@ -24,6 +24,7 @@ std::chrono::system_clock::time_point firstFrameTime = stringToDateTime("2022-07
 
 void signalHandler(int signal)
 {
+    // exit(0);
     Nuitrack::release();
     delete client;
     exit(0);
@@ -89,7 +90,7 @@ int main(int argc, char* argv[])
 
     std::string serverIp = config["server_ip"].asString();
     int serverPort = config["server_port"].asInt();
-    int cameraId = config["cameraId"].asInt();
+    int cameraId = config["camera_id"].asInt();
 
     client = new DetectClient(serverIp, serverPort, cameraId, M_inv);
     SkeletonTracker::Ptr skeletonTracker = nullptr;
