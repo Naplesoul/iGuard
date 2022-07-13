@@ -5,7 +5,7 @@
     "camera_id": 1,
     "device_name": "Kinect v2",
     "serial": "021817243547",
-    "camera_position": [0, 900, 0],
+    "camera_position": [0, 1600, 0],
     "camera_direction_x": [1.732, 0, -1],
     "camera_direction_y": [1, 5, 1.732],
     "camera_direction_z": [1, -0.8, 1.732]
