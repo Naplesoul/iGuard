@@ -9,6 +9,7 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 M_inv = None
 
+
 def init(id: int, server_ip: str, server_port: int, dir: list):
     global M_inv, ip, port, camera_id
 
