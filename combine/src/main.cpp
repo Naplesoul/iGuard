@@ -48,6 +48,7 @@ int main(int argc, char **argv)
     reader.parse(file, config);
 
     int listenPort = config["listen_port"].asInt();
+    combine = new Combine(config);
 
     int listenfd = socket(AF_INET, SOCK_DGRAM, 0);
     struct sockaddr_in listenAddr;
@@ -62,7 +63,7 @@ int main(int argc, char **argv)
         printf("Fail to bind port\n");
         exit(-1);
     }
-    printf("Combine sever listening at port %d...\n", listenAddr);
+    printf("Combine sever listening at port %d...\n", listenPort);
 
     listen(listenfd);
 }

@@ -35,7 +35,7 @@ if __name__ == "__main__":
     serial = user_config["serial"]
     camera_id = user_config["camera_id"]
 
-    send.init(user_config["server_ip"], user_config["server_port"],
+    send.init(camera_id, user_config["server_ip"], user_config["server_port"],
               [user_config["camera_direction_x"], user_config["camera_direction_y"], user_config["camera_direction_z"]])
 
     # ====== Realsense ======

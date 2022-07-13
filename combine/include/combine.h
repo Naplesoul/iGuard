@@ -21,12 +21,10 @@ struct Node
 
 struct Skeleton
 {
-    // bool mainRecved = false;
-    // bool minorRecved = false;
-    // bool handRecved = false;
-
-    // bool guiSent = false;
-    // bool simSent = false;
+    bool mainExist = false;
+    bool minorExist = false;
+    bool leftHandExist = false;
+    bool rightHandExist = false;
 
     std::vector<Node> bodyNodes;
     std::vector<Node> leftHandNodes;
@@ -63,6 +61,6 @@ private:
     void handCameraRecv(const Json::Value &payload);
 
 public:
-    Combine(const char *guiIp, const char *simIp, int guiPort, int simPort);
+    Combine(const Json::Value &config);
     void recv(const Json::Value &payload);
 };

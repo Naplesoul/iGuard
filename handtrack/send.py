@@ -4,15 +4,17 @@ import numpy as np
 
 ip = "127.0.0.1"
 port = 50000
+camera_id = 3
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 M_inv = None
 
-def init(server_ip: str, server_port: int, dir: list):
-    global M_inv, ip, port
+def init(id: int, server_ip: str, server_port: int, dir: list):
+    global M_inv, ip, port, camera_id
 
     ip = server_ip
     port = server_port
+    camera_id = id
 
     dir_x = np.linalg.norm(dir[0])
     dir_y = np.linalg.norm(dir[1])
@@ -37,6 +39,7 @@ def convert(pos: list) -> list:
 def send(frame_id: int, left_hand_landmarks, right_hand_landmarks, left_score: float, right_score: float):
     left_hand = []
     right_hand = []
+    payload = { "camera_id": camera_id, "frame_id": frame_id }
 
     for pos in left_hand_landmarks:
         left_hand.append(convert([-pos.x, -pos.y, pos.z, 1]))
@@ -45,24 +48,22 @@ def send(frame_id: int, left_hand_landmarks, right_hand_landmarks, left_score: f
         right_hand.append(convert([-pos.x, -pos.y, pos.z, 1]))
     
     length = len(left_hand)
-    for i in range(length):
-        left_hand[i][0] = int(left_hand[i][0] - left_hand[0][0])
-        left_hand[i][1] = int(left_hand[i][1] - left_hand[0][1])
-        left_hand[i][2] = int(left_hand[i][2] - left_hand[0][2])
+    if length > 0:
+        for i in range(length):
+            left_hand[i][0] = int(left_hand[i][0] - left_hand[0][0])
+            left_hand[i][1] = int(left_hand[i][1] - left_hand[0][1])
+            left_hand[i][2] = int(left_hand[i][2] - left_hand[0][2])
+        payload["left_hand_nodes"] = left_hand
+        payload["left_hand_score"] = int(left_score * 100)
     
     length = len(right_hand)
-    for i in range(length):
-        right_hand[i][0] = int(right_hand[i][0] - right_hand[0][0])
-        right_hand[i][1] = int(right_hand[i][1] - right_hand[0][1])
-        right_hand[i][2] = int(right_hand[i][2] - right_hand[0][2])
-
-    payload = {
-        "frame_id": frame_id,
-        "left_hand_nodes": left_hand,
-        "right_hand_nodes": right_hand,
-        "left_hand_score": int(left_score * 100),
-        "right_hand_score": int(right_score * 100),
-    }
+    if length > 0:
+        for i in range(length):
+            right_hand[i][0] = int(right_hand[i][0] - right_hand[0][0])
+            right_hand[i][1] = int(right_hand[i][1] - right_hand[0][1])
+            right_hand[i][2] = int(right_hand[i][2] - right_hand[0][2])
+        payload["right_hand_nodes"] = right_hand
+        payload["right_hand_score"] = int(right_score * 100)
 
     payload_str = json.dumps(payload)
     print(payload_str)
