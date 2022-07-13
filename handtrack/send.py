@@ -2,7 +2,7 @@ import json
 import socket
 import numpy as np
 
-ip = "localhost"
+ip = "127.0.0.1"
 port = 50000
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -58,10 +58,10 @@ def send(frame_id: int, left_hand_landmarks, right_hand_landmarks, left_score: f
 
     payload = {
         "frame_id": frame_id,
-        "left_hand": left_hand,
-        "right_hand": right_hand,
-        "left_score": int(left_score * 100),
-        "right_score": int(right_score * 100),
+        "left_hand_nodes": left_hand,
+        "right_hand_nodes": right_hand,
+        "left_hand_score": int(left_score * 100),
+        "right_hand_score": int(right_score * 100),
     }
 
     payload_str = json.dumps(payload)

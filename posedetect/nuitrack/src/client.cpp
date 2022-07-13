@@ -60,10 +60,17 @@ void DetectClient::send(uint64_t frameId, const tdv::nuitrack::Skeleton &newSkel
 			Eigen::Vector4f cam4(newSkeleton.joints[i].real.x, newSkeleton.joints[i].real.y, newSkeleton.joints[i].real.z, 1);
 			Eigen::Vector4f real4 = M_inv * cam4;
 			int score = newSkeleton.joints[i].confidence * 100;
+
 			node.append(int(real4(0)));
 			node.append(int(real4(1)));
 			node.append(int(real4(2)));
 			node.append(score);
+
+			// node["x"] = int(real4(0));
+			// node["y"] = int(real4(1));
+			// node["z"] = int(real4(2));
+			// node["score"] = newSkeleton.joints[i].confidence;
+
 			bodyNodes.append(node);
 		}
 	}

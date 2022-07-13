@@ -79,6 +79,7 @@ int main(int argc, char* argv[])
     Json::Reader reader;
     std::fstream file(argv[1]);
     reader.parse(file, config);
+    file.close();
 
     fps = config["fps"].asInt();
     frameTime = std::chrono::nanoseconds(1000000000 / fps);
