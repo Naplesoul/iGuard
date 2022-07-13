@@ -1,0 +1,12 @@
+{
+    "server_ip": "127.0.0.1",
+    "server_port": 50000,
+    "fps": 10,
+    "camera_id": 0,
+    "device_name": "Kinect v2",
+    "serial": "005881644047",
+    "camera_position": [0, 900, 0],
+    "camera_direction_x": [1, 0, 0],
+    "camera_direction_y": [0, 1, 0],
+    "camera_direction_z": [0, 0, 1]
+}
