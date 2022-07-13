@@ -100,14 +100,23 @@ int main(int argc, char* argv[])
         Nuitrack::init(configPath);
         std::string serial = config["serial"].asString();
         std::string deviceName = config["device_name"].asString();
+        bool foundDevice = false;
         auto devices = Nuitrack::getDeviceList();
         for (auto &device : devices) {
             std::string devSerial = device->getInfo(tdv::nuitrack::device::DeviceInfoType::SERIAL_NUMBER);
             if (devSerial == serial) {
+                foundDevice = true;
                 printf("Found Camera Id = %d, Serial = %s, Name = %s\n", cameraId, serial.c_str(), deviceName.c_str());
                 Nuitrack::setDevice(device);
                 break;
             }
+        }
+
+        if (!foundDevice) {
+            printf("Cannot found Camera Id = %d, Serial = %s, Name = %s\n", cameraId, serial.c_str(), deviceName.c_str());
+            Nuitrack::release();
+            delete client;
+            exit(-1);
         }
         // Create SkeletonTracker module, other required modules will be
         // created automatically
