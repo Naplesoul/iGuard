@@ -186,23 +186,8 @@ void Combine::handCameraRecv(const Json::Value &payload)
     send();
 }
 
-void Combine::sendToGuiClient(const char *buf, int len)
+void Combine::sendToGuiClient()
 {
-    sendto(sockfd, buf, len, 0, (struct sockaddr*)&guiAddr, addrLen);
-}
-
-void Combine::sendToSimClient(const char *buf, int len)
-{
-    sendto(sockfd, buf, len, 0, (struct sockaddr*)&simAddr, addrLen);
-}
-
-void Combine::send()
-{
-    if (mainFrameId != minorFrameId || minorFrameId != handFrameId) {
-        // printf("%ld %ld %ld\n", mainCameraId, minorCameraId, handCameraId);
-        return;
-    }
-
     Json::Value bodyNodes;
     for (int i = 0; i < 19; ++i) {
         Json::Value node;
@@ -265,10 +250,43 @@ void Combine::send()
         }
         payload["right_hand_nodes"] = rightHandNodes;
     }
-    printf("Sending...\n\n\n");
 
 	payload["frame_id"] = Json::Value::Int64(mainFrameId);
-    // printf("\n\n\n%s", payload.toStyledString().c_str());
+    printf("Sending to GUI Client...\n");
+    // printf("%s\n\n\n", payload.toStyledString().c_str());
 	std::string jsonStr = writer.write(payload);
-	sendToGuiClient(jsonStr.c_str(), jsonStr.length());
+    sendto(sockfd, jsonStr.data(), jsonStr.length(), 0, (struct sockaddr*)&guiAddr, addrLen);
+}
+
+void Combine::sendToSimClient()
+{
+    if (!skeleton.mainExist || !skeleton.minorExist) {
+        return;
+    }
+    Json::Value bodyNodes;
+    for (int i = 0; i < 19; ++i) {
+        Json::Value node;
+        node.append(skeleton.bodyNodes[i].x);
+        node.append(skeleton.bodyNodes[i].y);
+        node.append(skeleton.bodyNodes[i].z);
+        bodyNodes.append(node);
+    }
+    Json::Value payload;
+    payload["body_nodes"] = bodyNodes;
+    payload["frame_id"] = Json::Value::Int64(mainFrameId);
+    printf("Sending to SIM Client...\n");
+    // printf("%s\n\n\n", payload.toStyledString().c_str());
+    std::string jsonStr = writer.write(payload);
+    sendto(sockfd, jsonStr.data(), jsonStr.length(), 0, (struct sockaddr*)&simAddr, addrLen);
+}
+
+void Combine::send()
+{
+    if (mainFrameId != minorFrameId || minorFrameId != handFrameId) {
+        // printf("%ld %ld %ld\n", mainCameraId, minorCameraId, handCameraId);
+        return;
+    }
+	sendToGuiClient();
+    sendToSimClient();
+    printf("\n\n");
 }

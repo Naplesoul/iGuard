@@ -55,8 +55,8 @@ private:
     Json::FastWriter writer;
 
     void send();
-    void sendToGuiClient(const char *buf, int len);
-    void sendToSimClient(const char *buf, int len);
+    void sendToGuiClient();
+    void sendToSimClient();
     void mainCameraRecv(const Json::Value &payload);
     void minorCameraRecv(const Json::Value &payload);
     void handCameraRecv(const Json::Value &payload);
