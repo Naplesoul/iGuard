@@ -45,15 +45,17 @@ uint64_t waitUntilNextFrame()
 {
     auto now = std::chrono::system_clock::now();
     std::chrono::nanoseconds totalTime(now - firstFrameTime);
-    uint64_t frameId = std::ceil(double(totalTime.count()) / double(frameTime.count()));
+    uint64_t newFrameId = std::ceil(double(totalTime.count()) / double(frameTime.count()));
+    if (newFrameId <= frameId) {
+        newFrameId = frameId + 1;
+    }
     mtx.lock();
-    auto sleepTime = firstFrameTime + frameId * frameTime - now + offset;
+    auto sleepTime = firstFrameTime + newFrameId * frameTime - now + offset;
     mtx.unlock();
     if (sleepTime.count() > 1000000) {
-        printf("sleep %ldns\n", sleepTime.count());
         std::this_thread::sleep_for(sleepTime);
     }
-    return frameId;
+    return newFrameId;
 }
 
 // Callback for the hand data update event
