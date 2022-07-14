@@ -1,12 +1,16 @@
 #include "client.h"
 
+#include <thread>
+#include <pthread.h>
 #include <iostream>
 #include <eigen3/Eigen/Core>
 #include <jsoncpp/json/json.h>
 
+#define BUFFER_SIZE 1024
+
 DetectClient::DetectClient(const std::string &addr, uint16_t port, int _cameraId,
-						   Eigen::Matrix4f _M_inv):
-	cameraId(_cameraId), M_inv(_M_inv)
+						   void _updateOffset(int64_t), Eigen::Matrix4f _M_inv)
+	: cameraId(_cameraId), M_inv(_M_inv), updateOffset(_updateOffset)
 {
 	addrLen = sizeof(struct sockaddr_in);
 	memset(&serverAddr, 0, addrLen);
@@ -19,11 +23,35 @@ DetectClient::DetectClient(const std::string &addr, uint16_t port, int _cameraId
 	if (sockfd < 0) {
 		perror("Fail to setup socket\n");
 	}
+
+	feedbackThread = std::thread(&DetectClient::pollFeedback, this);
 }
 
 DetectClient::~DetectClient()
 {
-    
+    pthread_cancel(feedbackThread.native_handle());
+	feedbackThread.join();
+}
+
+void DetectClient::pollFeedback()
+{
+	char buf[BUFFER_SIZE];
+
+    while (true) {
+        memset(buf, 0, BUFFER_SIZE);
+        struct sockaddr_in addr;
+        socklen_t len = sizeof(addr);
+
+        int count = recvfrom(sockfd, buf, BUFFER_SIZE, 0, (struct sockaddr *)&addr, &len);
+        if (count < 0) {
+            printf("Fail to receive from server\n");
+            continue;
+        }
+        Json::Value payload;
+        reader.parse(buf, payload);
+		int64_t offset = payload["offset"].asInt64();
+		updateOffset(offset);
+    }
 }
 
 void DetectClient::sendToServer(const char *buf, int len)

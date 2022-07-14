@@ -3,6 +3,7 @@
 #include <deque>
 #include <vector>
 #include <string>
+#include <chrono>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -54,14 +55,20 @@ private:
 
     Json::FastWriter writer;
 
+    int64_t avgMainDiff = 0;
+    int64_t avgMinorDiff = 0;
+    int64_t avgHandDiff = 0;
+    std::chrono::nanoseconds frameTime;
+    int64_t timeDiff(int64_t frameId);
+
     void send();
     void sendToGuiClient();
     void sendToSimClient();
-    void mainCameraRecv(const Json::Value &payload);
-    void minorCameraRecv(const Json::Value &payload);
-    void handCameraRecv(const Json::Value &payload);
+    void mainCameraRecv(const struct sockaddr_in &clientAddr, const Json::Value &payload);
+    void minorCameraRecv(const struct sockaddr_in &clientAddr, const Json::Value &payload);
+    void handCameraRecv(const struct sockaddr_in &clientAddr, const Json::Value &payload);
 
 public:
     Combine(const Json::Value &config);
-    void recv(const Json::Value &payload);
+    void recv(const struct sockaddr_in &clientAddr, const Json::Value &payload);
 };

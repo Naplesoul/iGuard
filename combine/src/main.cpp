@@ -29,7 +29,7 @@ void listen(int fd)
         }
         Json::Value payload;
         reader.parse(buf, payload);
-        combine->recv(payload);
+        combine->recv(clientAddr, payload);
     }
 }
 
