@@ -21,36 +21,44 @@ void Skeleton::updateMain(const Json::Value &bodyMsg)
     }
 
     mainExist = true;
+    int diffX, diffY, diffZ;
     const Json::Value &body = bodyMsg["body_nodes"];
-    Node newAnchor = Node(body[2][0].asInt(), body[2][1].asInt(), body[2][2].asInt(), body[2][3].asInt());
-    int diffX = newAnchor.x - bodyNodes[2].x;
-    int diffY = newAnchor.y - bodyNodes[2].y;
-    int diffZ = newAnchor.z - bodyNodes[2].z;
 
-    bodyNodes[0].x = body[0][0].asInt();
-    bodyNodes[0].y = body[0][1].asInt();
-    bodyNodes[0].z = body[0][2].asInt();
-    bodyNodes[0].score = body[0][3].asInt();
+    diffX = body[13][0].asInt() - bodyNodes[13].x;
+    diffY = body[13][1].asInt() - bodyNodes[13].y;
+    diffZ = body[13][2].asInt() - bodyNodes[13].z;
 
-    bodyNodes[1].x = body[1][0].asInt();
-    bodyNodes[1].y = body[1][1].asInt();
-    bodyNodes[1].z = body[1][2].asInt();
-    bodyNodes[1].score = body[1][3].asInt();
+    bodyNodes[14].x += diffX;
+    bodyNodes[14].y += diffY;
+    bodyNodes[14].z += diffZ;
 
-    bodyNodes[2] = newAnchor;
+    bodyNodes[15].x += diffX;
+    bodyNodes[15].y += diffY;
+    bodyNodes[15].z += diffZ;
+    
+    diffX = body[16][0].asInt() - bodyNodes[16].x;
+    diffY = body[16][1].asInt() - bodyNodes[16].y;
+    diffZ = body[16][2].asInt() - bodyNodes[16].z;
 
-    for (int i = 4; i < 13; ++i) {
+    bodyNodes[17].x += diffX;
+    bodyNodes[17].y += diffY;
+    bodyNodes[17].z += diffZ;
+
+    bodyNodes[18].x += diffX;
+    bodyNodes[18].y += diffY;
+    bodyNodes[18].z += diffZ;
+
+    for (int i = 0; i < 14; ++i) {
         bodyNodes[i].x = body[i][0].asInt();
         bodyNodes[i].y = body[i][1].asInt();
         bodyNodes[i].z = body[i][2].asInt();
         bodyNodes[i].score = body[i][3].asInt();
     }
 
-    for (int i = 13; i < 19; ++i) {
-        bodyNodes[i].x += diffX;
-        bodyNodes[i].y += diffY;
-        bodyNodes[i].z += diffZ;
-    }
+    bodyNodes[16].x = body[16][0].asInt();
+    bodyNodes[16].y = body[16][1].asInt();
+    bodyNodes[16].z = body[16][2].asInt();
+    bodyNodes[16].score = body[16][3].asInt();
 }
 
 void Skeleton::updateMinor(const Json::Value &bodyMsg)
@@ -61,23 +69,36 @@ void Skeleton::updateMinor(const Json::Value &bodyMsg)
     }
 
     minorExist = true;
+    int diffX, diffY, diffZ;
     const Json::Value &body = bodyMsg["body_nodes"];
-    Node newAnchor = Node(body[2][0].asInt(), body[2][1].asInt(), body[2][2].asInt(), body[2][3].asInt());
-    int diffX = bodyNodes[2].x - newAnchor.x;
-    int diffY = bodyNodes[2].y - newAnchor.y;
-    int diffZ = bodyNodes[2].z - newAnchor.z;
 
-    bodyNodes[3].x = body[3][0].asInt() + diffX;
-    bodyNodes[3].y = body[3][1].asInt() + diffY;
-    bodyNodes[3].z = body[3][2].asInt() + diffZ;
-    bodyNodes[3].score = body[3][3].asInt();
+    diffX = bodyNodes[13].x - body[16][0].asInt();
+    diffY = bodyNodes[13].y - body[16][1].asInt();
+    diffZ = bodyNodes[13].z - body[16][2].asInt();
 
-    for (int i = 13; i < 19; ++i) {
-        bodyNodes[i].x = body[i][0].asInt() + diffX;
-        bodyNodes[i].y = body[i][1].asInt() + diffY;
-        bodyNodes[i].z = body[i][2].asInt() + diffZ;
-        bodyNodes[i].score = body[i][3].asInt();
-    }
+    bodyNodes[14].x = body[17][0].asInt() + diffX;
+    bodyNodes[14].y = body[17][1].asInt() + diffY;
+    bodyNodes[14].z = body[17][2].asInt() + diffZ;
+    bodyNodes[14].score = body[17][3].asInt();
+
+    bodyNodes[15].x = body[18][0].asInt() + diffX;
+    bodyNodes[15].y = body[18][1].asInt() + diffY;
+    bodyNodes[15].z = body[18][2].asInt() + diffZ;
+    bodyNodes[15].score = body[18][3].asInt();
+
+    diffX = bodyNodes[16].x - body[13][0].asInt();
+    diffY = bodyNodes[16].y - body[13][1].asInt();
+    diffZ = bodyNodes[16].z - body[13][2].asInt();
+
+    bodyNodes[17].x = body[14][0].asInt() + diffX;
+    bodyNodes[17].y = body[14][1].asInt() + diffY;
+    bodyNodes[17].z = body[14][2].asInt() + diffZ;
+    bodyNodes[17].score = body[14][3].asInt();
+
+    bodyNodes[18].x = body[15][0].asInt() + diffX;
+    bodyNodes[18].y = body[15][1].asInt() + diffY;
+    bodyNodes[18].z = body[15][2].asInt() + diffZ;
+    bodyNodes[18].score = body[15][3].asInt();
 }
 
 void Skeleton::updateHands(const Json::Value &hands)
@@ -154,7 +175,7 @@ void Combine::mainCameraRecv(const Json::Value &payload)
 {
     int64_t frameId = payload["frame_id"].asInt64();
     printf("Received main\tcamera msg\tframe ID: %ld\n", frameId);
-    // printf("%ldms\n", std::chrono::system_clock::now().time_since_epoch().count() / 1000000);
+    printf("%ldms\n", std::chrono::system_clock::now().time_since_epoch().count() / 1000000);
     if (frameId > mainFrameId) {
         skeleton.updateMain(payload);
         mainFrameId = frameId;
@@ -166,7 +187,7 @@ void Combine::minorCameraRecv(const Json::Value &payload)
 {
     int64_t frameId = payload["frame_id"].asInt64();
     printf("Received minor\tcamera msg\tframe ID: %ld\n", frameId);
-    // printf("%ldms\n", std::chrono::system_clock::now().time_since_epoch().count() / 1000000);
+    printf("%ldms\n", std::chrono::system_clock::now().time_since_epoch().count() / 1000000);
     if (frameId > minorFrameId) {
         skeleton.updateMinor(payload);
         minorFrameId = frameId;
@@ -178,7 +199,7 @@ void Combine::handCameraRecv(const Json::Value &payload)
 {
     int64_t frameId = payload["frame_id"].asInt64();
     printf("Received hand\tcamera msg\tframe ID: %ld\n", frameId);
-    // printf("%ldms\n", std::chrono::system_clock::now().time_since_epoch().count() / 1000000);
+    printf("%ldms\n", std::chrono::system_clock::now().time_since_epoch().count() / 1000000);
     if (frameId > handFrameId) {
         skeleton.updateHands(payload);
         handFrameId = frameId;
