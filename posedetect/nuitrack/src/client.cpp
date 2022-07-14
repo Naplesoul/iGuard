@@ -2,32 +2,37 @@
 
 #include <iostream>
 #include <eigen3/Eigen/Core>
-#include <jsoncpp/json/json.h>
+#include "json.h"
 
 DetectClient::DetectClient(const char* addr, uint16_t port, int _cameraId,
 						   Eigen::Matrix4f _M_inv, float _smooth):
 	frameId(0), cameraId(_cameraId), smooth(_smooth), smoothRest(1 - _smooth), M_inv(_M_inv)
 {
-	addr_len = sizeof(struct sockaddr_in);
-	memset(&serveraddr, 0, addr_len);
 
-	serveraddr.sin_family = AF_INET;
-	serveraddr.sin_port = htons(port);
-	serveraddr.sin_addr.s_addr = inet_addr(addr);
+	//addr_len = sizeof(SOCKADDR_IN);
+	//memset(&serveraddr, 0, addr_len);
 
-	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sockfd < 0) {
-		perror("fail to setup socket");
-	}
+	//send_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	//if (send_socket == SOCKET_ERROR) {
+	//	std::cout << "socket Error = " << WSAGetLastError() << std::endl;
+	//	return;
+	//}
+
+	//serveraddr.sin_family = AF_INET;
+	//serveraddr.sin_port = htons(port);
+	//serveraddr.sin_addr.s_addr = inet_addr(addr);
 }
 
 DetectClient::~DetectClient()
 {
-    
+	//关闭socket连接
+	//closesocket(send_socket);
+	//清理
+	//WSACleanup();
 }
 
 void DetectClient::sendToServer(const char* buf, int len){
-    sendto(sockfd, buf, len, 0, (struct sockaddr*)&serveraddr, addr_len);
+	//sendto(send_socket, buf, len, 0, (SOCKADDR*)&serveraddr, sizeof(SOCKADDR));
 }
 
 void DetectClient::sendPoseToServer()

@@ -3,10 +3,9 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
-#include <unistd.h>
 #include <chrono>
 #include <thread>
-#include <jsoncpp/json/json.h>
+#include "json.h"
 #include <eigen3/Eigen/LU>
 #include <eigen3/Eigen/Core>
 #include <nuitrack/Nuitrack.h>

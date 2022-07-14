@@ -9,7 +9,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(NUITRACK_INCLUDE_PATH ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/include/middleware)
 set(NUITRACK_LIBRARY_PATH ${CMAKE_CURRENT_LIST_DIR}/lib) 
 
-include_directories(${NUITRACK_INCLUDE_PATH})
+include_directories(${NUITRACK_INCLUDE_PATH} "C:/Program Files (x86)/Eigen3/include")
 link_directories(${NUITRACK_LIBRARY_PATH})
 
 aux_source_directory("${PROJECT_SOURCE_DIR}/src" pose_src)

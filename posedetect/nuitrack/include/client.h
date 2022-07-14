@@ -3,14 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
+//#include <WinSock2.h>
 #include <sys/types.h>
-#include <unistd.h>
-#include <arpa/inet.h>
 
 #include <nuitrack/Nuitrack.h>
 #include <eigen3/Eigen/Core>
-#include <jsoncpp/json/json.h>
+#include <json.h>
 
 struct Point
 {
@@ -27,9 +25,9 @@ struct PureSkeleton
 class DetectClient
 {
 private:
-    int sockfd;
-    int addr_len;
-    struct sockaddr_in serveraddr;
+ //   SOCKET send_socket;
+ //   int addr_len;
+ //   SOCKADDR_IN serveraddr;
 
     uint64_t frameId;
     int cameraId;
