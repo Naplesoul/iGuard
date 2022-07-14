@@ -206,7 +206,7 @@ void Combine::minorCameraRecv(const struct sockaddr_in &clientAddr, const Json::
 {
     int64_t frameId = payload["frame_id"].asInt64();
     printf("Received minor\tcamera msg\tframe ID: %ld\n", frameId);
-    if (frameId <= mainFrameId) {
+    if (frameId <= minorFrameId) {
         return;
     }
     avgMinorDiff = 0.3 * avgMinorDiff + 0.7 * timeDiff(frameId);
@@ -223,7 +223,7 @@ void Combine::handCameraRecv(const struct sockaddr_in &clientAddr, const Json::V
 {
     int64_t frameId = payload["frame_id"].asInt64();
     printf("Received hand\tcamera msg\tframe ID: %ld\n", frameId);
-    if (frameId <= mainFrameId) {
+    if (frameId <= handFrameId) {
         return;
     }
     avgHandDiff = 0.3 * avgHandDiff + 0.7 * timeDiff(frameId);
@@ -344,6 +344,7 @@ void Combine::send()
 int64_t Combine::timeDiff(int64_t frameId)
 {
     auto now = std::chrono::system_clock::now();
+    printf("arrival time: %ldms\n", (now - firstFrameTime).count() / 1000000);
     auto diff = firstFrameTime + frameId * frameTime - now;
     return diff.count() / 1000000;
 }
