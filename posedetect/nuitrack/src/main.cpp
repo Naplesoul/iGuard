@@ -18,16 +18,15 @@ using namespace tdv::nuitrack;
 
 int fps = 10;
 uint64_t frameId = 0;
+bool interrupted = false;
 DetectClient *client = nullptr;
 std::chrono::nanoseconds frameTime(0);
 std::chrono::system_clock::time_point firstFrameTime = stringToDateTime("2022-07-06 00::00::00");
 
 void signalHandler(int signal)
 {
-    // exit(0);
-    Nuitrack::release();
-    delete client;
-    exit(0);
+    if (interrupted) exit(0);
+    interrupted = true;
 }
 
 uint64_t waitUntilNextFrame()
@@ -137,7 +136,7 @@ int main(int argc, char* argv[])
     int errorCode = EXIT_SUCCESS;
     try
     {
-        while (true) {
+        while (!interrupted) {
             frameId = waitUntilNextFrame();
             auto begin = std::chrono::system_clock::now();
             
@@ -161,4 +160,8 @@ int main(int argc, char* argv[])
         std::cerr << "Nuitrack update failed (ExceptionType: " << e.type() << ")" << std::endl;
         errorCode = EXIT_FAILURE;
     }
+
+    delete client;
+    Nuitrack::release();
+    exit(errorCode);
 }
