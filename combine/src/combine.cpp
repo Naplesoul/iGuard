@@ -2,9 +2,21 @@
 
 #include <chrono>
 #include <memory>
+#include <sstream>
+#include <iomanip> 
 #include <iostream>
 #include <string.h>
 #include <arpa/inet.h>
+
+std::chrono::system_clock::time_point stringToDateTime(const std::string &s)
+{
+    std::tm timeDate = {};
+    std::istringstream ss(s);
+    ss >> std::get_time(&timeDate, "%Y-%m-%d %H:%M:%S");
+    return std::chrono::system_clock::from_time_t(mktime(&timeDate));
+}
+
+static const std::chrono::system_clock::time_point firstFrameTime = stringToDateTime("2022-07-15 00::00::00");
 
 Skeleton::Skeleton()
 {
@@ -132,7 +144,7 @@ void Skeleton::updateHands(const Json::Value &hands)
     }
 }
 
-Combine::Combine(const Json::Value &config)
+Combine::Combine(const Json::Value &config): frameTime(0)
 {
     const char *guiIp = config["gui_ip"].asCString();
     const char *simIp = config["sim_ip"].asCString();
@@ -142,6 +154,8 @@ Combine::Combine(const Json::Value &config)
     mainCameraId = config["main_camera_id"].asInt();
     minorCameraId = config["minor_camera_id"].asInt();
     handCameraId = config["hand_camera_id"].asInt();
+
+    frameTime = std::chrono::nanoseconds(1000000000 / config["fps"].asInt());
 
     memset(&guiAddr, 0, sizeof(guiAddr));
     memset(&simAddr, 0, sizeof(simAddr));
@@ -157,52 +171,67 @@ Combine::Combine(const Json::Value &config)
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 }
 
-void Combine::recv(const Json::Value &payload)
+void Combine::recv(const struct sockaddr_in &clientAddr, const Json::Value &payload)
 {
     int cameraId = payload["camera_id"].asInt();
     if (cameraId == mainCameraId) {
-        mainCameraRecv(payload);
+        mainCameraRecv(clientAddr, payload);
     } else if (cameraId == minorCameraId) {
-        minorCameraRecv(payload);
+        minorCameraRecv(clientAddr, payload);
     } else if (cameraId == handCameraId) {
-        handCameraRecv(payload);
+        handCameraRecv(clientAddr, payload);
     } else {
         printf("Unknown Camera ID: %d\n", cameraId);
     }
 }
 
-void Combine::mainCameraRecv(const Json::Value &payload)
+void Combine::mainCameraRecv(const struct sockaddr_in &clientAddr, const Json::Value &payload)
 {
     int64_t frameId = payload["frame_id"].asInt64();
     printf("Received main\tcamera msg\tframe ID: %ld\n", frameId);
-    printf("%ldms\n", std::chrono::system_clock::now().time_since_epoch().count() / 1000000);
-    if (frameId > mainFrameId) {
-        skeleton.updateMain(payload);
-        mainFrameId = frameId;
+    if (frameId <= mainFrameId) {
+        return;
+    }
+    avgMainDiff = 0.3 * avgMainDiff + 0.7 * timeDiff(frameId);
+    skeleton.updateMain(payload);
+    mainFrameId = frameId;
+    if (frameId % 16 == 0) {
+        std::string feedback = "{\"offset\":" + std::to_string(avgMainDiff) +"}";
+        sendto(sockfd, feedback.data(), feedback.length(), 0, (struct sockaddr*)&clientAddr, addrLen);
     }
     send();
 }
 
-void Combine::minorCameraRecv(const Json::Value &payload)
+void Combine::minorCameraRecv(const struct sockaddr_in &clientAddr, const Json::Value &payload)
 {
     int64_t frameId = payload["frame_id"].asInt64();
     printf("Received minor\tcamera msg\tframe ID: %ld\n", frameId);
-    printf("%ldms\n", std::chrono::system_clock::now().time_since_epoch().count() / 1000000);
-    if (frameId > minorFrameId) {
-        skeleton.updateMinor(payload);
-        minorFrameId = frameId;
+    if (frameId <= mainFrameId) {
+        return;
+    }
+    avgMinorDiff = 0.3 * avgMinorDiff + 0.7 * timeDiff(frameId);
+    skeleton.updateMinor(payload);
+    minorFrameId = frameId;
+    if (frameId % 16 == 0) {
+        std::string feedback = "{\"offset\":" + std::to_string(avgMinorDiff) +"}";
+        sendto(sockfd, feedback.data(), feedback.length(), 0, (struct sockaddr*)&clientAddr, addrLen);
     }
     send();
 }
 
-void Combine::handCameraRecv(const Json::Value &payload)
+void Combine::handCameraRecv(const struct sockaddr_in &clientAddr, const Json::Value &payload)
 {
     int64_t frameId = payload["frame_id"].asInt64();
     printf("Received hand\tcamera msg\tframe ID: %ld\n", frameId);
-    printf("%ldms\n", std::chrono::system_clock::now().time_since_epoch().count() / 1000000);
-    if (frameId > handFrameId) {
-        skeleton.updateHands(payload);
-        handFrameId = frameId;
+    if (frameId <= mainFrameId) {
+        return;
+    }
+    avgHandDiff = 0.3 * avgHandDiff + 0.7 * timeDiff(frameId);
+    skeleton.updateHands(payload);
+    handFrameId = frameId;
+    if (frameId % 16 == 0) {
+        std::string feedback = "{\"offset\":" + std::to_string(avgHandDiff) +"}";
+        sendto(sockfd, feedback.data(), feedback.length(), 0, (struct sockaddr*)&clientAddr, addrLen);
     }
     send();
 }
@@ -310,4 +339,11 @@ void Combine::send()
 	sendToGuiClient();
     sendToSimClient();
     printf("\n\n");
+}
+
+int64_t Combine::timeDiff(int64_t frameId)
+{
+    auto now = std::chrono::system_clock::now();
+    auto diff = firstFrameTime + frameId * frameTime - now;
+    return diff.count() / 1000000;
 }

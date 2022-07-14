@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <chrono>
 #include <thread>
+#include <mutex>
 #include <eigen3/Eigen/LU>
 #include <eigen3/Eigen/Core>
 #include <jsoncpp/json/json.h>
@@ -16,12 +17,15 @@
 
 using namespace tdv::nuitrack;
 
-int fps = 10;
-uint64_t frameId = 0;
 bool interrupted = false;
 DetectClient *client = nullptr;
+
+int fps = 10;
+uint64_t frameId = 0;
+std::mutex mtx;
+std::chrono::nanoseconds offset(0);
 std::chrono::nanoseconds frameTime(0);
-std::chrono::system_clock::time_point firstFrameTime = stringToDateTime("2022-07-06 00::00::00");
+const std::chrono::system_clock::time_point firstFrameTime = stringToDateTime("2022-07-15 00::00::00");
 
 void signalHandler(int signal)
 {
@@ -29,12 +33,26 @@ void signalHandler(int signal)
     interrupted = true;
 }
 
+void updateOffset(int64_t _offset)
+{
+    printf("update offset %ld\n", _offset);
+    mtx.lock();
+    offset = std::chrono::nanoseconds(_offset * 1000000);
+    mtx.unlock();
+}
+
 uint64_t waitUntilNextFrame()
 {
     auto now = std::chrono::system_clock::now();
     std::chrono::nanoseconds totalTime(now - firstFrameTime);
     uint64_t frameId = std::ceil(double(totalTime.count()) / double(frameTime.count()));
-    std::this_thread::sleep_for(firstFrameTime + frameId * frameTime - now);
+    mtx.lock();
+    auto sleepTime = firstFrameTime + frameId * frameTime - now + offset;
+    mtx.unlock();
+    if (sleepTime.count() > 1000000) {
+        printf("sleep %ldns\n", sleepTime.count());
+        std::this_thread::sleep_for(sleepTime);
+    }
     return frameId;
 }
 
@@ -91,7 +109,7 @@ int main(int argc, char* argv[])
     int serverPort = config["server_port"].asInt();
     int cameraId = config["camera_id"].asInt();
 
-    client = new DetectClient(serverIp, serverPort, cameraId, M_inv);
+    client = new DetectClient(serverIp, serverPort, cameraId, updateOffset, M_inv);
     SkeletonTracker::Ptr skeletonTracker = nullptr;
 
     // start Nuitrack

@@ -7,5 +7,6 @@
     "main_camera_id": 1,
     "minor_camera_id": 0,
     "hand_camera_id": 3,
+    "fps": 10,
     "smooth": 0.2
 }
