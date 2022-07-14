@@ -188,11 +188,16 @@ void Combine::recv(const struct sockaddr_in &clientAddr, const Json::Value &payl
 void Combine::mainCameraRecv(const struct sockaddr_in &clientAddr, const Json::Value &payload)
 {
     int64_t frameId = payload["frame_id"].asInt64();
-    printf("Received main\tcamera msg\tframe ID: %ld\n", frameId);
+    printf("Received main\tcamera msg\tframe ID: %ld", frameId);
     if (frameId <= mainFrameId) {
         return;
     }
-    avgMainDiff = 0.3 * avgMainDiff + 0.7 * timeDiff(frameId);
+
+    int64_t diff = timeDiff(frameId);
+    if (diff < 64 && diff > -64) {
+        avgMainDiff = 0.3 * avgMainDiff + 0.7 * diff;
+    }
+
     skeleton.updateMain(payload);
     mainFrameId = frameId;
     if (frameId % 16 == 0) {
@@ -205,11 +210,16 @@ void Combine::mainCameraRecv(const struct sockaddr_in &clientAddr, const Json::V
 void Combine::minorCameraRecv(const struct sockaddr_in &clientAddr, const Json::Value &payload)
 {
     int64_t frameId = payload["frame_id"].asInt64();
-    printf("Received minor\tcamera msg\tframe ID: %ld\n", frameId);
+    printf("Received minor\tcamera msg\tframe ID: %ld", frameId);
     if (frameId <= minorFrameId) {
         return;
     }
-    avgMinorDiff = 0.3 * avgMinorDiff + 0.7 * timeDiff(frameId);
+
+    int64_t diff = timeDiff(frameId);
+    if (diff < 64 && diff > -64) {
+        avgMinorDiff = 0.3 * avgMinorDiff + 0.7 * diff;
+    }
+    
     skeleton.updateMinor(payload);
     minorFrameId = frameId;
     if (frameId % 16 == 0) {
@@ -222,11 +232,16 @@ void Combine::minorCameraRecv(const struct sockaddr_in &clientAddr, const Json::
 void Combine::handCameraRecv(const struct sockaddr_in &clientAddr, const Json::Value &payload)
 {
     int64_t frameId = payload["frame_id"].asInt64();
-    printf("Received hand\tcamera msg\tframe ID: %ld\n", frameId);
+    printf("Received hand\tcamera msg\tframe ID: %ld", frameId);
     if (frameId <= handFrameId) {
         return;
     }
-    avgHandDiff = 0.3 * avgHandDiff + 0.7 * timeDiff(frameId);
+    
+    int64_t diff = timeDiff(frameId);
+    if (diff < 64 && diff > -64) {
+        avgHandDiff = 0.3 * avgHandDiff + 0.7 * diff;
+    }
+
     skeleton.updateHands(payload);
     handFrameId = frameId;
     if (frameId % 16 == 0) {
@@ -344,7 +359,7 @@ void Combine::send()
 int64_t Combine::timeDiff(int64_t frameId)
 {
     auto now = std::chrono::system_clock::now();
-    printf("arrival time: %ldms\n", (now - firstFrameTime).count() / 1000000);
+    printf("\t\tarrival time: %ldms\n", (now - firstFrameTime).count() / 1000000);
     auto diff = firstFrameTime + frameId * frameTime - now;
     return diff.count() / 1000000;
 }
