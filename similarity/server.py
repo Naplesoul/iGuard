@@ -6,21 +6,27 @@ import torch
 import utils
 import config
 
-def get_skeleton(recv: socket.socket) -> list:
-    bytes, addr = recv.recvfrom(10240)
-    node_info = json.loads(bytes.decode())
+last_frame_id = 0
 
-    skeleton = []
-    for i in range(25):
-        if i in [0, 10, 11, 16, 20, 24]:
-            continue
-        skeleton.append([node_info["nodes"][i]["x"], node_info["nodes"][i]["y"], node_info["nodes"][i]["z"]])
+def get_skeleton(recv: socket.socket) -> list:
+    global last_frame_id
+
+    while True:
+        bytes, addr = recv.recvfrom(10240)
+        payload = json.loads(bytes.decode())
+        frame_id = payload["frame_id"]
+        print(frame_id)
+        if frame_id > last_frame_id:
+            last_frame_id = frame_id
+            break
+
+    skeleton = payload["body_nodes"]
     return skeleton
 
 
 if __name__ == "__main__":
     recv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    recv.bind(("0.0.0.0", config.skeleton_port))
+    recv.bind(("0.0.0.0", config.listen_port))
     send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     epoch, model, optimizer = utils.load_model(config.use_cuda)
@@ -42,7 +48,7 @@ if __name__ == "__main__":
             input = input.type(torch.cuda.DoubleTensor).squeeze().view(-1, config.input_length, config.feature_size).permute(1,0,2)
             output = float(model(input)[0])
 
-            send.sendto(json.dumps({ "value": output }).encode(), (config.similarity_ip, config.similarity_port))
+            send.sendto(json.dumps({ "value": output }).encode(), (config.gui_ip, config.gui_sim_port))
 
             end = time()
             print("result: {:.2f}\tinfer time: {} ms".format(output, int((end - start) * 1000)))
@@ -58,7 +64,7 @@ if __name__ == "__main__":
             input = input.type(torch.DoubleTensor).squeeze().view(-1, config.input_length, config.feature_size).permute(1,0,2)
             output = float(model(input)[0])
 
-            send.sendto(json.dumps({ "value": output }).encode(), (config.similarity_ip, config.similarity_port))
+            send.sendto(json.dumps({ "value": output }).encode(), (config.gui_ip, config.gui_sim_port))
 
             end = time()
             print("result: {:.2f}\tinfer time: {} ms".format(output, int((end - start) * 1000)))
