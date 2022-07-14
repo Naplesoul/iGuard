@@ -6,13 +6,12 @@ meta_dir = "./dataset/meta"
 record_dir = "./dataset/record"
 processed_dir = "./dataset/processed"
 
-skeleton_ip = "192.168.0.111"
-skeleton_port = 50002
+gui_ip = "192.168.0.111"
+gui_port = 50002
+gui_sim_port = 50003
+listen_port = 50001
 
-similarity_ip = "192.168.0.111"
-similarity_port = 50003
-
-use_cuda = True
+use_cuda = False
 
 train_classes = [
     ["wrench", 0.5],

@@ -9,8 +9,8 @@ import config
 data_dir = config.processed_dir
 framerate = config.model_framerate
 
-ip = config.skeleton_ip
-port = config.skeleton_port
+ip = config.gui_ip
+port = config.gui_port
 
 if __name__ == "__main__":
     send_serial_id = int(sys.argv[len(sys.argv) - 1])
@@ -25,16 +25,8 @@ if __name__ == "__main__":
     for i in range(len(serial)):
         frame = serial[i]
         nodes = [{"x": x, "y": y, "z": z, "score": 0.75} for (x, y, z) in tuple(frame)]
-        nodes.insert(0, {"x": 0, "y": 0, "z": 0, "score": 0.75})
-        nodes.insert(10, {"x": 0, "y": 0, "z": 0, "score": 0.75})
-        nodes.insert(11, nodes[5])
-        nodes.insert(16, {"x": 0, "y": 0, "z": 0, "score": 0.75})
-        nodes.insert(20, {"x": 0, "y": 0, "z": 0, "score": 0.75})
-        nodes.insert(24, {"x": 0, "y": 0, "z": 0, "score": 0.75})
         pack = {
-            "node_num": 25,
-            "nodes": nodes,
-            "camera_id": 1,
+            "body_nodes": nodes,
             "frame_id": i
         }
         s.sendto(json.dumps(pack).encode(), (ip, port))
