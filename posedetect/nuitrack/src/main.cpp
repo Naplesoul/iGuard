@@ -37,7 +37,7 @@ void updateOffset(int64_t _offset)
 {
     printf("update offset %ld\n", _offset);
     mtx.lock();
-    offset = std::chrono::nanoseconds(_offset * 1000000);
+    offset += std::chrono::nanoseconds(_offset * 1000000);
     mtx.unlock();
 }
 

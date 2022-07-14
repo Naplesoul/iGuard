@@ -1,21 +1,25 @@
 import json
 import socket
+from threading import Thread
 import numpy as np
 
 ip = "127.0.0.1"
 port = 50000
 camera_id = 3
+update_offset = None
+poll_thread = None
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 M_inv = None
 
 
-def init(id: int, server_ip: str, server_port: int, dir: list):
-    global M_inv, ip, port, camera_id
+def init(id: int, server_ip: str, server_port: int, update, dir: list):
+    global M_inv, ip, port, camera_id, update_offset, poll_thread
 
     ip = server_ip
     port = server_port
     camera_id = id
+    update_offset = update
 
     dir_x = np.linalg.norm(dir[0])
     dir_y = np.linalg.norm(dir[1])
@@ -30,6 +34,16 @@ def init(id: int, server_ip: str, server_port: int, dir: list):
     T_inv = np.identity(4)
     M_inv = np.dot(T_inv, R4_inv)
     print(f"M_inv:\n{M_inv}")
+    poll_thread = Thread(target=recv)
+    poll_thread.start()
+
+
+def recv():
+    while True:
+        bytes, addr = sock.recvfrom(1024)
+        payload = json.loads(bytes.decode())
+        offset = payload["offset"]
+        update_offset(offset)
 
 
 def convert(pos: list) -> list:
