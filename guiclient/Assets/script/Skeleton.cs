@@ -272,7 +272,7 @@ public class Skeleton : MonoBehaviour
 
         float cos = GetSimilarity(keyPose, false);
         simiText.text = "当前步骤完成度：" + Mathf.Round(cos * 10000) / 100 + "%";
-        if (cos > 0.94){
+        if (cos > 0.9){
             body_nodes[0].GetComponent<MeshRenderer>().material = keyMat;
             NextKeyPos();
         }else{
@@ -372,12 +372,14 @@ public class Skeleton : MonoBehaviour
             for (int i = 0; i < 19 ;i ++){
                 body_lastNodePos[i] = body_nodePos[i];
                 body_nodeActive[i] = (ni.body_nodes[i].score != 0);
+                //body_nodeActive[i] = true;
                 body_nodePos[i].x = body_nodePos[i].x * (1 - ni.body_nodes[i].score / 100) + (ni.body_nodes[i].x / 1000 * ni.body_nodes[i].score / 100);
                 body_nodePos[i].y = body_nodePos[i].y * (1 - ni.body_nodes[i].score / 100) + (ni.body_nodes[i].y / 1000 * ni.body_nodes[i].score / 100);
                 body_nodePos[i].z = body_nodePos[i].z * (1 - ni.body_nodes[i].score / 100) + (ni.body_nodes[i].z / 1000 * ni.body_nodes[i].score / 100);
             }
             for (int i = 0; i < 18 ;i ++){
                 body_boneActive[i] = (ni.body_nodes[bnMap[i].x].score != 0 && ni.body_nodes[bnMap[i].y].score != 0);
+                //body_boneActive[i] = true;
             }
             if (ni.left_hand_nodes != null){
                 body_nodeActive[8] = false;

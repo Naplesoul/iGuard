@@ -34,10 +34,12 @@ public class DangerCol : MonoBehaviour
         Debug.Log("Danger!");
         if (other.gameObject.name.Contains("node")){
             dangerText.text = "！！误触危险区：" + other.gameObject.name;
+            SendMsg("B");
         }else if (other.gameObject.name.Contains("pNode")){
             dangerText.text = "可能进入危险区：" + other.gameObject.name;
+            SendMsg("L");
         }
-        SendMsg("B");
+        
     }
 
     private void OnCollisionExit(Collision other) {
