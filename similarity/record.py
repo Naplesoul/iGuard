@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
         result = []
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.bind(("0.0.0.0", config.server_port))
+        s.bind(("0.0.0.0", config.skeleton_port))
         print("-" * frame_num, end="")
         sys.stdout.flush()
         for i in range(frame_num):

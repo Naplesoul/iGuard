@@ -9,8 +9,8 @@ import config
 data_dir = config.processed_dir
 framerate = config.model_framerate
 
-ip = config.server_ip
-port = config.server_port
+ip = config.skeleton_ip
+port = config.skeleton_port
 
 if __name__ == "__main__":
     send_serial_id = int(sys.argv[len(sys.argv) - 1])
