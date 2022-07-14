@@ -2,7 +2,6 @@ import json
 import math
 import sys
 import time
-from turtle import goto
 import cv2
 import numpy as np
 import datetime as dt
@@ -16,18 +15,15 @@ stream_res_y = 480
 stream_fps = 30
 fps = 10
 frametime = 1 / fps
-avg_process_time = 0.02
-first_frametime = dt.datetime.strptime("2022-07-06 00:00:00", "%Y-%m-%d %H:%M:%S").timestamp()
+first_frametime = dt.datetime.strptime("2022-07-15 00:00:00", "%Y-%m-%d %H:%M:%S").timestamp()
 last_frame_id = 0
+offset = 0
 
 
-def update_process_time(start_time):
-    global avg_process_time
-
-    end_time = dt.datetime.today().timestamp()
-    process_time = end_time - start_time
-    avg_process_time = 0.7 * avg_process_time + 0.3 * process_time
-    print(f"process time: {int(process_time * 1000)}ms")
+def update_offset(_offset):
+    global offset
+    offset += _offset / 1000
+    print(f"offset: {int(offset * 1000)} ms")
 
 
 def wait_next_frame() -> int:
@@ -38,7 +34,8 @@ def wait_next_frame() -> int:
     frame_id = math.ceil(total_time / frametime)
     if frame_id <= last_frame_id:
         frame_id += 1
-    sleep_time = first_frametime + frame_id * frametime - now - avg_process_time * 0.8
+    sleep_time = first_frametime + frame_id * frametime - now + offset
+    # print(sleep_time)
     if sleep_time > 0.005:
         time.sleep(sleep_time)
     last_frame_id = frame_id
@@ -56,7 +53,7 @@ if __name__ == "__main__":
     serial = user_config["serial"]
     camera_id = user_config["camera_id"]
 
-    send.init(camera_id, user_config["server_ip"], user_config["server_port"],
+    send.init(camera_id, user_config["server_ip"], user_config["server_port"], update_offset,
               [user_config["camera_direction_x"], user_config["camera_direction_y"], user_config["camera_direction_z"]])
 
     # ====== Realsense ======
@@ -93,7 +90,6 @@ if __name__ == "__main__":
         if not color_frame:
             send.send(frame_id, [], [], 0, 0)
             print("No Hands found")
-            update_process_time(start_time)
             continue
 
         color_image = np.asanyarray(color_frame.get_data())
@@ -104,7 +100,6 @@ if __name__ == "__main__":
         if not results.multi_hand_world_landmarks:
             send.send(frame_id, [], [], 0, 0)
             print("No Hands found")
-            update_process_time(start_time)
             continue
         
         left_hand = []
@@ -125,4 +120,7 @@ if __name__ == "__main__":
                 break
             
         send.send(frame_id, left_hand, right_hand, left_score, right_score)
-        update_process_time(start_time)
+
+        end_time = dt.datetime.today().timestamp()
+        process_time = end_time - start_time
+        print(f"process time: {int(process_time * 1000)}ms")

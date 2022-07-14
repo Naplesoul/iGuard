@@ -203,6 +203,7 @@ void Combine::mainCameraRecv(const struct sockaddr_in &clientAddr, const Json::V
     if (frameId % 16 == 0) {
         std::string feedback = "{\"offset\":" + std::to_string(avgMainDiff) +"}";
         sendto(sockfd, feedback.data(), feedback.length(), 0, (struct sockaddr*)&clientAddr, addrLen);
+        avgMainDiff = 0;
     }
     send();
 }
@@ -225,6 +226,7 @@ void Combine::minorCameraRecv(const struct sockaddr_in &clientAddr, const Json::
     if (frameId % 16 == 0) {
         std::string feedback = "{\"offset\":" + std::to_string(avgMinorDiff) +"}";
         sendto(sockfd, feedback.data(), feedback.length(), 0, (struct sockaddr*)&clientAddr, addrLen);
+        avgMinorDiff = 0;
     }
     send();
 }
@@ -247,6 +249,7 @@ void Combine::handCameraRecv(const struct sockaddr_in &clientAddr, const Json::V
     if (frameId % 16 == 0) {
         std::string feedback = "{\"offset\":" + std::to_string(avgHandDiff) +"}";
         sendto(sockfd, feedback.data(), feedback.length(), 0, (struct sockaddr*)&clientAddr, addrLen);
+        avgHandDiff = 0;
     }
     send();
 }
