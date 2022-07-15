@@ -35,6 +35,7 @@ def init(id: int, server_ip: str, server_port: int, update, dir: list):
     M_inv = np.dot(T_inv, R4_inv)
     print(f"M_inv:\n{M_inv}")
     poll_thread = Thread(target=recv)
+    poll_thread.setDaemon(True)
     poll_thread.start()
 
 
@@ -64,19 +65,37 @@ def send(frame_id: int, left_hand_landmarks, right_hand_landmarks, left_score: f
     
     length = len(left_hand)
     if length > 0:
-        for i in range(length):
-            left_hand[i][0] = int(left_hand[i][0] - left_hand[0][0])
-            left_hand[i][1] = int(left_hand[i][1] - left_hand[0][1])
-            left_hand[i][2] = int(left_hand[i][2] - left_hand[0][2])
+        left_x = left_hand[0][0]
+        left_y = left_hand[0][1]
+        left_z = left_hand[0][2]
+
+        left_hand[0][0] = int(0)
+        left_hand[0][1] = int(0)
+        left_hand[0][2] = int(0)
+
+        for i in range(1, length):
+            left_hand[i][0] = int(left_hand[i][0] - left_x)
+            left_hand[i][1] = int(left_hand[i][1] - left_y)
+            left_hand[i][2] = int(left_hand[i][2] - left_z)
+        
         payload["left_hand_nodes"] = left_hand
         payload["left_hand_score"] = int(left_score * 100)
     
     length = len(right_hand)
     if length > 0:
-        for i in range(length):
-            right_hand[i][0] = int(right_hand[i][0] - right_hand[0][0])
-            right_hand[i][1] = int(right_hand[i][1] - right_hand[0][1])
-            right_hand[i][2] = int(right_hand[i][2] - right_hand[0][2])
+        right_x = right_hand[0][0]
+        right_y = right_hand[0][1]
+        right_z = right_hand[0][2]
+
+        right_hand[0][0] = int(0)
+        right_hand[0][1] = int(0)
+        right_hand[0][2] = int(0)
+
+        for i in range(1, length):
+            right_hand[i][0] = int(right_hand[i][0] - right_x)
+            right_hand[i][1] = int(right_hand[i][1] - right_y)
+            right_hand[i][2] = int(right_hand[i][2] - right_z)
+        
         payload["right_hand_nodes"] = right_hand
         payload["right_hand_score"] = int(right_score * 100)
 
