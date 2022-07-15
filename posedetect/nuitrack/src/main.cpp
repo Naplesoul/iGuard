@@ -81,7 +81,7 @@ void onSkeletonUpdate(SkeletonData::Ptr skeletonData)
 
 int main(int argc, char* argv[])
 {
-    printf("Usage: pose_detect [path/to/camera_config.json] [path/to/nuitrack.config]\n");
+    printf("Usage: pose [path/to/camera_config.json] [path/to/nuitrack.config]\n");
 
     if (argc < 2) {
         std::cerr << "missing camera config json\n";

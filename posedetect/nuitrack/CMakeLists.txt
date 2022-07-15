@@ -13,8 +13,8 @@ include_directories(${NUITRACK_INCLUDE_PATH})
 link_directories(${NUITRACK_LIBRARY_PATH})
 
 aux_source_directory("${PROJECT_SOURCE_DIR}/src" pose_src)
-add_executable(pose_detect ${pose_src})
+add_executable(pose ${pose_src})
 
 set(LIBS nuitrack middleware)
 
-target_link_libraries(pose_detect ${LIBS} jsoncpp pthread)
+target_link_libraries(pose ${LIBS} jsoncpp pthread)
