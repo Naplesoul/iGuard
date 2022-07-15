@@ -42,7 +42,9 @@ def wait_next_frame() -> int:
     return frame_id
 
 
-if __name__ == "__main__":
+def main():
+    global fps, frametime
+
     config_filename = sys.argv[len(sys.argv) - 1]
     config_file = open(config_filename)
     user_config = json.load(config_file)
@@ -124,3 +126,11 @@ if __name__ == "__main__":
         end_time = dt.datetime.today().timestamp()
         process_time = end_time - start_time
         print(f"process time: {int(process_time * 1000)}ms")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\tKeyboardInterrupt")
+        sys.exit(-1)
