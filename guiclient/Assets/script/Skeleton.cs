@@ -66,7 +66,7 @@ public class Skeleton : MonoBehaviour
     public GameObject nodePrefab;
     public GameObject pPrefab;
     public GameObject bonePrefab;
-    private Vector3[] keyPose;
+    private Vector3[] keyPose, okPose;
 
     private GameObject[] preNodes;
     private Vector3[] prePose;
@@ -74,6 +74,7 @@ public class Skeleton : MonoBehaviour
     private string[] keyPoseList;
     private int currKeyPoseIndex;
     private long last_frame_id;
+    private float last_ok_time;
 
     public Material keyMat;
     public Material defMat;
@@ -114,6 +115,7 @@ public class Skeleton : MonoBehaviour
         bnMap = new Vector2Int[18];
         hbnMap = new Vector2Int[21];
         keyPose = new Vector3[19];
+        okPose = new Vector3[21];
         keyPoseList = new string[0];
         prePose = new Vector3[19];
         preNodes = new GameObject[19];
@@ -189,7 +191,12 @@ public class Skeleton : MonoBehaviour
         hbnMap[19] = new Vector2Int(19, 20);
         hbnMap[20] = new Vector2Int(0, 17);
 
+        DangerCol.dangerText = dangerText;
+        dangerText.text = "当前无危险";
+        DangerCol.socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         CaseChanged(0);
+        LoadOKPos();
+
         
         socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         socket.Bind(new IPEndPoint(IPAddress.Parse(ip), port));
@@ -270,9 +277,17 @@ public class Skeleton : MonoBehaviour
             rh_bones[i].transform.localScale = new Vector3(0.005f, upward.magnitude / 2, 0.005f); 
         }
 
-        float cos = GetSimilarity(keyPose, false);
-        simiText.text = "当前步骤完成度：" + Mathf.Round(cos * 10000) / 100 + "%";
+        float cos = GetSimilarity_body(keyPose);
+        float cos2 = GetSimilarity_hand(okPose);
+        simiText.text = "当前步骤完成度：" + Mathf.Round(cos * 10000) / 100 + "%/" + Mathf.Round(cos2 * 10000) / 100 + "%";
         if (cos > 0.9){
+            body_nodes[0].GetComponent<MeshRenderer>().material = keyMat;
+            NextKeyPos();
+        }else{
+            body_nodes[0].GetComponent<MeshRenderer>().material = defMat;
+        }
+        if (cos2 > 0.9 && Time.time - last_ok_time > 5){
+            last_ok_time = Time.time;
             body_nodes[0].GetComponent<MeshRenderer>().material = keyMat;
             NextKeyPos();
         }else{
@@ -283,7 +298,7 @@ public class Skeleton : MonoBehaviour
         timeText.text = string.Format("{0:T}", DateTime.Now);
     }
 
-    private float GetSimilarity(Vector3[] kp, bool strict){
+    private float GetSimilarity_body(Vector3[] kp){
         //Vector3 m = new Vector3();
         float r = 0;
         // if (!strict){
@@ -301,10 +316,27 @@ public class Skeleton : MonoBehaviour
         //     m1 += (nodePos[i] + m).magnitude * (nodePos[i] + m).magnitude;
         //     m2 += kp[i].magnitude * kp[i].magnitude;
         // }
-        for (int i = 0; i < 11; i ++){
-            if (i == 3 || i == 7) continue;
+        for (int i = 0; i < 18; i ++){
+            if (i == 7 || i == 11) continue;
             Vector3 a = body_nodePos[bnMap[i].x], b = body_nodePos[bnMap[i].y];
             Vector3 ak = kp[bnMap[i].x], bk = kp[bnMap[i].y];
+            Vector3 upward = (b - a), upwardk = (bk - ak).normalized * (b - a).magnitude;
+            r += upward.x * upwardk.x;
+            r += upward.y * upwardk.y;
+            r += upward.z * upwardk.z;
+            m1 += upward.magnitude * upward.magnitude;
+            m2 += upwardk.magnitude * upwardk.magnitude;
+        }
+        float cos = r / Mathf.Sqrt(m1) / Mathf.Sqrt(m2);
+        return cos * cos;
+    }
+
+    private float GetSimilarity_hand(Vector3[] kp){
+        float r = 0;
+        float m1 = 0, m2 = 0;
+        for (int i = 0; i < 21; i ++){
+            Vector3 a = rh_nodePos[hbnMap[i].x], b = rh_nodePos[hbnMap[i].y];
+            Vector3 ak = kp[hbnMap[i].x], bk = kp[hbnMap[i].y];
             Vector3 upward = (b - a), upwardk = (bk - ak).normalized * (b - a).magnitude;
             r += upward.x * upwardk.x;
             r += upward.y * upwardk.y;
@@ -324,11 +356,15 @@ public class Skeleton : MonoBehaviour
             nextText.text = "无关键步骤信息";
             foreach (Transform child in currentObject.transform)
             {
-                if(child.gameObject.name.Contains("danger")){
+                if(child.gameObject.name.Contains("dangerCylinder")){
                     CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
                     collider.enabled = false;
                     child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                    break;
+                }
+                if(child.gameObject.name.Contains("dangerCube")){
+                    BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+                    collider.enabled = false;
+                    child.gameObject.GetComponent<MeshRenderer>().material = preMat;
                 }
             }
         }
@@ -347,7 +383,7 @@ public class Skeleton : MonoBehaviour
         }
         foreach (Transform child in currentObject.transform)
         {
-            if(child.gameObject.name.Contains("danger")){
+            if(child.gameObject.name.Contains("dangerCylinder")){
                 CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
                 if (node_info.danger){
                     collider.enabled = true;
@@ -356,10 +392,34 @@ public class Skeleton : MonoBehaviour
                     collider.enabled = false;
                     child.gameObject.GetComponent<MeshRenderer>().material = preMat;
                 }
-                break;
+            }
+            if(child.gameObject.name.Contains("dangerCube")){
+                BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+                if (node_info.danger){
+                    collider.enabled = true;
+                    child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+                }else{
+                    collider.enabled = false;
+                    child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                }
             }
         }
+        if (!node_info.danger){
+            DangerCol.noDanger();
+        }
         nextText.text = "请执行关键步骤("+ (currKeyPoseIndex + 1) +"/"+ keyPoseList.Length +")：" + node_info.pose;
+    }
+
+    private void LoadOKPos(){
+        StreamReader sr = new StreamReader("./Assets/Pose/ok/ok.json", Encoding.UTF8);
+        string content =  sr.ReadToEnd();
+        sr.Close();
+        KeyPack_NodeInfo node_info = JsonUtility.FromJson<KeyPack_NodeInfo>(content);
+        for (int i = 0; i < 21 ;i ++){
+            okPose[i].x = node_info.nodes[i].x / 1000;
+            okPose[i].y = node_info.nodes[i].y / 1000;
+            okPose[i].z = node_info.nodes[i].z / 1000;
+        }
     }
 
     private void SetNodePos(WebPack_NodeInfo ni){
@@ -373,9 +433,12 @@ public class Skeleton : MonoBehaviour
                 body_lastNodePos[i] = body_nodePos[i];
                 body_nodeActive[i] = (ni.body_nodes[i].score != 0);
                 //body_nodeActive[i] = true;
-                body_nodePos[i].x = body_nodePos[i].x * (1 - ni.body_nodes[i].score / 100) + (ni.body_nodes[i].x / 1000 * ni.body_nodes[i].score / 100);
-                body_nodePos[i].y = body_nodePos[i].y * (1 - ni.body_nodes[i].score / 100) + (ni.body_nodes[i].y / 1000 * ni.body_nodes[i].score / 100);
-                body_nodePos[i].z = body_nodePos[i].z * (1 - ni.body_nodes[i].score / 100) + (ni.body_nodes[i].z / 1000 * ni.body_nodes[i].score / 100);
+                // body_nodePos[i].x = body_nodePos[i].x * (1 - ni.body_nodes[i].score / 100) + (ni.body_nodes[i].x / 1000 * ni.body_nodes[i].score / 100);
+                // body_nodePos[i].y = body_nodePos[i].y * (1 - ni.body_nodes[i].score / 100) + (ni.body_nodes[i].y / 1000 * ni.body_nodes[i].score / 100);
+                // body_nodePos[i].z = body_nodePos[i].z * (1 - ni.body_nodes[i].score / 100) + (ni.body_nodes[i].z / 1000 * ni.body_nodes[i].score / 100);
+                body_nodePos[i].x = ni.body_nodes[i].x / 1000;
+                body_nodePos[i].y = ni.body_nodes[i].y / 1000;
+                body_nodePos[i].z = ni.body_nodes[i].z / 1000;
             }
             for (int i = 0; i < 18 ;i ++){
                 body_boneActive[i] = (ni.body_nodes[bnMap[i].x].score != 0 && ni.body_nodes[bnMap[i].y].score != 0);
@@ -394,6 +457,13 @@ public class Skeleton : MonoBehaviour
                 for (int i = 0; i < 21 ;i ++){
                     lh_boneActive[i] = (ni.left_hand_nodes[hbnMap[i].x].score != 0 && ni.left_hand_nodes[hbnMap[i].y].score != 0);
                 }
+            }else {
+                for (int i = 0; i < 21;i ++){
+                    lh_nodeActive[i] = false;
+                }
+                for (int i = 0; i < 21 ;i ++){
+                    lh_boneActive[i] = false;
+                }
             }
             if (ni.right_hand_nodes != null){
                 body_nodeActive[12] = false;
@@ -408,14 +478,21 @@ public class Skeleton : MonoBehaviour
                 for (int i = 0; i < 21 ;i ++){
                     rh_boneActive[i] = (ni.right_hand_nodes[hbnMap[i].x].score != 0 && ni.right_hand_nodes[hbnMap[i].y].score != 0);
                 }
-            }
-            if (last_frame_id != -1){
-                for (int i = 0; i < 19 ;i ++){
-                    prePose[i].x = (body_nodePos[i].x - body_lastNodePos[i].x) < 0.1 ? (2 * body_nodePos[i].x - body_lastNodePos[i].x) : body_lastNodePos[i].x;
-                    prePose[i].y = (body_nodePos[i].y - body_lastNodePos[i].y) < 0.1 ? (2 * body_nodePos[i].y - body_lastNodePos[i].y) : body_lastNodePos[i].y;
-                    prePose[i].z = (body_nodePos[i].z - body_lastNodePos[i].z) < 0.1 ? (2 * body_nodePos[i].z - body_lastNodePos[i].z) : body_lastNodePos[i].z;
+            }else {
+                for (int i = 0; i < 21;i ++){
+                    rh_nodeActive[i] = false;
+                }
+                for (int i = 0; i < 21 ;i ++){
+                    rh_boneActive[i] = false;
                 }
             }
+            // if (last_frame_id != -1){
+            //     for (int i = 0; i < 19 ;i ++){
+            //         prePose[i].x = (body_nodePos[i].x - body_lastNodePos[i].x) < 0.1 ? (2 * body_nodePos[i].x - body_lastNodePos[i].x) : body_lastNodePos[i].x;
+            //         prePose[i].y = (body_nodePos[i].y - body_lastNodePos[i].y) < 0.1 ? (2 * body_nodePos[i].y - body_lastNodePos[i].y) : body_lastNodePos[i].y;
+            //         prePose[i].z = (body_nodePos[i].z - body_lastNodePos[i].z) < 0.1 ? (2 * body_nodePos[i].z - body_lastNodePos[i].z) : body_lastNodePos[i].z;
+            //     }
+            // }
             last_frame_id = ni.frame_id;
         }
     }
@@ -445,6 +522,7 @@ public class Skeleton : MonoBehaviour
         if (value == 0){
             currentObject = lathe;
             keyPoseList = new string[5]{"lathe/tighten", "lathe/start", "lathe/cut", "lathe/stop", "lathe/release"};
+            //keyPoseList = new string[1]{"lathe/cut"};
             currKeyPoseIndex = -1;
             NextKeyPos();
         }else if (value == 1){
@@ -460,6 +538,9 @@ public class Skeleton : MonoBehaviour
         for (int i = 0; i < 19 ;i ++){
             body_nodes[i].GetComponent<SphereCollider>().enabled = f;
         }
+        if (!f){
+            DangerCol.noDanger();
+        }
     }
 
     public void KeyModeChanged(bool f){
@@ -471,4 +552,12 @@ public class Skeleton : MonoBehaviour
         }
     }
 
+    public void ActionModeChanged(bool f){
+        simiText.enabled = f;
+        nextText.enabled = f;
+        if (f){
+            currKeyPoseIndex = -1;
+            NextKeyPos();
+        }
+    }
 }

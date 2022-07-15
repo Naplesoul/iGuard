@@ -1,7 +1,6 @@
 {
     "pose": "进刀",
     "danger": true,
-    "node_num": 25,
     "nodes": [
         {
             "x": -127,
