@@ -1,72 +1,114 @@
 #include "client.h"
 
+#include <thread>
+#include <pthread.h>
 #include <iostream>
 #include <eigen3/Eigen/Core>
 #include <jsoncpp/json/json.h>
 
-DetectClient::DetectClient(const char* addr, uint16_t port, int _cameraId,
-						   Eigen::Matrix4f _M_inv, float _smooth):
-	frameId(0), cameraId(_cameraId), smooth(_smooth), smoothRest(1 - _smooth), M_inv(_M_inv)
-{
-	addr_len = sizeof(struct sockaddr_in);
-	memset(&serveraddr, 0, addr_len);
+#define BUFFER_SIZE 1024
 
-	serveraddr.sin_family = AF_INET;
-	serveraddr.sin_port = htons(port);
-	serveraddr.sin_addr.s_addr = inet_addr(addr);
+DetectClient::DetectClient(const std::string &addr, uint16_t port, int _cameraId,
+						   void _updateOffset(int64_t), Eigen::Matrix4f _M_inv)
+	: cameraId(_cameraId), M_inv(_M_inv), updateOffset(_updateOffset)
+{
+	addrLen = sizeof(struct sockaddr_in);
+	memset(&serverAddr, 0, addrLen);
+
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_port = htons(port);
+	serverAddr.sin_addr.s_addr = inet_addr(addr.c_str());
 
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd < 0) {
-		perror("fail to setup socket");
+		perror("Fail to setup socket\n");
 	}
+
+	feedbackThread = std::thread(&DetectClient::pollFeedback, this);
 }
 
 DetectClient::~DetectClient()
 {
-    
+    pthread_cancel(feedbackThread.native_handle());
+	feedbackThread.join();
 }
 
-void DetectClient::sendToServer(const char* buf, int len){
-    sendto(sockfd, buf, len, 0, (struct sockaddr*)&serveraddr, addr_len);
-}
-
-void DetectClient::sendPoseToServer()
+void DetectClient::pollFeedback()
 {
-	Json::Value nodes;
-	for (int i = 0; i < 25; ++i) {
-		Json::Value node;
+	char buf[BUFFER_SIZE];
 
-		node["x"] = int(skeleton.joints[i].x);
-		node["y"] = int(skeleton.joints[i].y);
-		node["z"] = int(skeleton.joints[i].z);
-        node["score"] = skeleton.joints[i].score;
+    while (true) {
+        memset(buf, 0, BUFFER_SIZE);
+        struct sockaddr_in addr;
+        socklen_t len = sizeof(addr);
 
-		nodes.append(node);
-	}
+        int count = recvfrom(sockfd, buf, BUFFER_SIZE, 0, (struct sockaddr *)&addr, &len);
+        if (count < 0) {
+            printf("Fail to receive from server\n");
+            continue;
+        }
+        Json::Value payload;
+        reader.parse(buf, payload);
+		int64_t offset = payload["offset"].asInt64();
+		updateOffset(offset);
+    }
+}
 
-	Json::Value json;
-	json["camera_id"] = cameraId;
-	json["frame_id"] = Json::Value::Int64(frameId);
-	json["node_num"] = 25;
-	json["nodes"] = nodes;
+void DetectClient::sendToServer(const char *buf, int len)
+{
+    sendto(sockfd, buf, len, 0, (struct sockaddr*)&serverAddr, addrLen);
+}
 
-	std::cout << "\n\n\nSending\n" << json.toStyledString();
-	std::string jsonStr = writer.write(json);
+void DetectClient::sendEmpty(uint64_t frameId)
+{
+	Json::Value payload;
+	payload["camera_id"] = cameraId;
+	payload["frame_id"] = Json::Value::Int64(frameId);
+	
+	printf("\n\n\n%s", payload.toStyledString().c_str());
+	std::string jsonStr = writer.write(payload);
 	sendToServer(jsonStr.c_str(), jsonStr.length());
 }
 
-void DetectClient::update(uint64_t _frameId, const tdv::nuitrack::Skeleton &newSkeleton)
+void DetectClient::send(uint64_t frameId, const tdv::nuitrack::Skeleton &newSkeleton)
 {
-	frameId = _frameId;
+	Json::Value bodyNodes;
 	for (int i = 0; i < 25; ++i) {
-		Eigen::Vector4f cam4(newSkeleton.joints[i].real.x, newSkeleton.joints[i].real.y, newSkeleton.joints[i].real.z, 1);
-		Eigen::Vector4f real4 = M_inv * cam4;
+		switch (i)
+		{
+		case 0:
+		case 10:
+		case 11:
+		case 16:
+		case 20:
+		case 24:
+			continue;
+		default:
+			Json::Value node;
+			Eigen::Vector4f cam4(newSkeleton.joints[i].real.x, newSkeleton.joints[i].real.y, newSkeleton.joints[i].real.z, 1);
+			Eigen::Vector4f real4 = M_inv * cam4;
+			int score = newSkeleton.joints[i].confidence * 100;
 
-		skeleton.joints[i].x = smoothRest * real4(0) + smooth * skeleton.joints[i].x;
-		skeleton.joints[i].y = smoothRest * real4(1) + smooth * skeleton.joints[i].y;
-		skeleton.joints[i].z = smoothRest * real4(2) + smooth * skeleton.joints[i].z;
-		skeleton.joints[i].score = newSkeleton.joints[i].confidence;
+			node.append(int(real4(0)));
+			node.append(int(real4(1)));
+			node.append(int(real4(2)));
+			node.append(score);
+
+			// node["x"] = int(real4(0));
+			// node["y"] = int(real4(1));
+			// node["z"] = int(real4(2));
+			// node["score"] = newSkeleton.joints[i].confidence;
+
+			bodyNodes.append(node);
+		}
 	}
 
-	sendPoseToServer();
+	Json::Value payload;
+	payload["camera_id"] = cameraId;
+	payload["frame_id"] = Json::Value::Int64(frameId);
+	payload["body_nodes"] = bodyNodes;
+
+	printf("\n\n\n%s", payload.toStyledString().c_str());
+	std::string jsonStr = writer.write(payload);
+	sendToServer(jsonStr.c_str(), jsonStr.length());
 }

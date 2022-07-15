@@ -1,0 +1,12 @@
+{
+    "server_ip": "127.0.0.1",
+    "server_port": 50000,
+    "fps": 10,
+    "camera_id": 3,
+    "device_name": "Intel RealSense D435",
+    "serial": "941322071495",
+    "camera_position": [-965, 80, 1770],
+    "camera_direction_x": [0, 0, -1],
+    "camera_direction_y": [0, 1, 0],
+    "camera_direction_z": [-1, 0, 0]
+}

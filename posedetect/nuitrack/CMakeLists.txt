@@ -17,4 +17,4 @@ add_executable(pose_detect ${pose_src})
 
 set(LIBS nuitrack middleware)
 
-target_link_libraries(pose_detect ${LIBS} jsoncpp)
+target_link_libraries(pose_detect ${LIBS} jsoncpp pthread)

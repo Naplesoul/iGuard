@@ -1,5 +1,6 @@
 #pragma once
 
+#include <thread>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,39 +13,28 @@
 #include <eigen3/Eigen/Core>
 #include <jsoncpp/json/json.h>
 
-struct Point
-{
-    float x, y, z, score;
-    Point(float x = 0, float y = 0, float z = 0, float score = 0):
-        x(x), y(y), z(z), score(score) {}
-};
-
-struct PureSkeleton
-{
-    Point joints[25];
-};
-
 class DetectClient
 {
 private:
     int sockfd;
-    int addr_len;
-    struct sockaddr_in serveraddr;
+    int addrLen;
+    struct sockaddr_in serverAddr;
 
-    uint64_t frameId;
     int cameraId;
-    float smooth;
-    float smoothRest;
     Eigen::Matrix4f M_inv;
+    Json::Reader reader;
     Json::FastWriter writer;
-    PureSkeleton skeleton;
 
+    void (*updateOffset)(int64_t);
+    std::thread feedbackThread;
+    void pollFeedback();
     void sendToServer(const char* buf, int len);
-    void sendPoseToServer();
 
 public:
-    void update(uint64_t frameId, const tdv::nuitrack::Skeleton &newSkeleton);
+    void sendEmpty(uint64_t frameId);
+    void send(uint64_t frameId, const tdv::nuitrack::Skeleton &newSkeleton);
 
-    DetectClient(const char* addr, uint16_t port, int cameraId, Eigen::Matrix4f M_inv, float smooth = 0.3);
+    DetectClient(const std::string &addr, uint16_t port, int cameraId,
+                 void updateOffset(int64_t), Eigen::Matrix4f M_inv);
     ~DetectClient();
 };
