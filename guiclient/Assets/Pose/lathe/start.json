@@ -1,7 +1,6 @@
 {
     "pose": "开机",
     "danger": false,
-    "node_num": 25,
     "nodes": [
         {
             "x": 467,
