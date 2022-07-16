@@ -21,7 +21,13 @@ def get_skeleton(recv: socket.socket) -> list:
             break
 
     skeleton = payload["body_nodes"]
-    return skeleton
+    anchor = skeleton[4]
+    new_skeleton = []
+    for k in range(4):
+        new_skeleton.append([skeleton[k][0] - anchor[0], skeleton[k][1] - anchor[1], skeleton[k][2] - anchor[2]])
+    for k in range(5, config.joint_size):
+        new_skeleton.append([skeleton[k][0] - anchor[0], skeleton[k][1] - anchor[1], skeleton[k][2] - anchor[2]])
+    return new_skeleton
 
 
 if __name__ == "__main__":

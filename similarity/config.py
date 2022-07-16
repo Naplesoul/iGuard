@@ -11,7 +11,7 @@ gui_port = 50002
 gui_sim_port = 50003
 listen_port = 50001
 
-use_cuda = False
+use_cuda = True
 
 train_classes = [
     ["wrench", 0.5],
@@ -32,13 +32,14 @@ train_classes = [
 
 input_length_sec = 5
 model_framerate = 10
-feature_size = 19 * 3
+joint_size = 13
+feature_size = (joint_size - 1) * 3
 learning_rate = 0.0001
 num_epochs = 50000
 save_epoch = 1000
-shuffle_epoch = 2000
+shuffle_epoch = 10000
 show_loss_epoch = 100
-num_MMD_NCA_Groups = 3000
+num_MMD_NCA_Groups = 10000
 
 ideal_input_length_sec = input_length_sec + 1
 input_length = input_length_sec * model_framerate

@@ -4,7 +4,6 @@ import torch.nn.functional as F
 
 import config
 
-use_cuda = torch.cuda.is_available()
 
 class SelfAttentiveEncoder(nn.Module):
 

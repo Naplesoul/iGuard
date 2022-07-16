@@ -10,8 +10,7 @@ from torch.utils.data import DataLoader
 import config
 import utils
 
-use_cuda = torch.cuda.is_available()
-    
+
 class MMD_NCA_loss(nn.Module):
     def __init__(self):
         super().__init__()
@@ -53,6 +52,7 @@ class MMD_NCA_loss(nn.Module):
         denominator = value_1 + value_2 + value_3 + value_4 + value_5
         loss = torch.exp(- numerator / denominator)
         return loss
+
 
 class MMD_NCA_Dataset(Dataset):
     def __init__(self, dir, num_MMD_NCA_Groups):
@@ -128,6 +128,7 @@ class MMD_NCA_Dataset(Dataset):
     def __len__(self):
         return self.num_MMD_NCA_Groups
 
+
 def train(model, train_loader, myloss, optimizer, epoch):
     model.train()
     for batch_idx, train_data in enumerate(train_loader):
@@ -141,12 +142,13 @@ def train(model, train_loader, myloss, optimizer, epoch):
         print('Train Epoch: {} \tloss: {:.2f}'.format(epoch, 10000.*loss.data.cpu().numpy()))
         return loss
 
+
 if __name__ == "__main__":
     #generate training data
     train_data = MMD_NCA_Dataset(config.processed_dir, config.num_MMD_NCA_Groups)
     train_loader = DataLoader(train_data, batch_size = 1, shuffle = True)
 
-    start_epoch, model, optimizer = utils.load_model(config.use_cuda)
+    start_epoch, model, optimizer = utils.load_model(True)
     epoch = start_epoch
     criterion = MMD_NCA_loss()
     loss_total = 0.
