@@ -20,6 +20,9 @@ public class KeyPack_Vector3{
 public class KeyPack_NodeInfo{
     public string pose;
     public bool danger;
+    public string motion;
+    public string motion_name;
+    public float motion_value;
     public KeyPack_Vector3[] nodes;
 }
 
@@ -45,6 +48,8 @@ public class Skeleton : MonoBehaviour
     private static string ip = "0.0.0.0";
     private static int port = 50002;
     private static Socket socket;
+
+    public static float sim;
 
     private GameObject[] body_nodes;
     private GameObject[] body_bones;
@@ -72,6 +77,7 @@ public class Skeleton : MonoBehaviour
     private Vector3[] prePose;
 
     private string[] keyPoseList;
+    private string[] actionList;
     private int currKeyPoseIndex;
     private long last_frame_id;
     private float last_ok_time;
@@ -84,7 +90,8 @@ public class Skeleton : MonoBehaviour
     public Text simiText;
     public Text nextText;
     public Text timeText;
-
+    public Text actText;
+    public Text simText;
     public GameObject lathe;
     public GameObject driller;
     private GameObject currentObject;
@@ -280,6 +287,7 @@ public class Skeleton : MonoBehaviour
         float cos = GetSimilarity_body(keyPose);
         float cos2 = GetSimilarity_hand(okPose);
         simiText.text = "当前步骤完成度：" + Mathf.Round(cos * 10000) / 100 + "%/" + Mathf.Round(cos2 * 10000) / 100 + "%";
+        simText.text = "当前动作相似度：" + sim;
         if (cos > 0.9){
             body_nodes[0].GetComponent<MeshRenderer>().material = keyMat;
             NextKeyPos();
@@ -408,6 +416,7 @@ public class Skeleton : MonoBehaviour
             DangerCol.noDanger();
         }
         nextText.text = "请执行关键步骤("+ (currKeyPoseIndex + 1) +"/"+ keyPoseList.Length +")：" + node_info.pose;
+        actText.text = "当前应做动作：" + node_info.motion_name;
     }
 
     private void LoadOKPos(){
@@ -521,13 +530,13 @@ public class Skeleton : MonoBehaviour
         driller.SetActive(value == 1);
         if (value == 0){
             currentObject = lathe;
-            keyPoseList = new string[5]{"lathe/tighten", "lathe/start", "lathe/cut", "lathe/stop", "lathe/release"};
-            //keyPoseList = new string[1]{"lathe/cut"};
+            keyPoseList = new string[4]{"lathe/tighten", "lathe/start", "lathe/stop", "lathe/release"};
             currKeyPoseIndex = -1;
             NextKeyPos();
         }else if (value == 1){
             currentObject = driller;
             keyPoseList = new string[5]{"driller/tighten", "driller/start", "driller/drill", "driller/stop", "driller/release"};
+            actionList = new string[2]{"driller/drill", "driller/brush"};
             currKeyPoseIndex = -1;
             NextKeyPos();
         }
