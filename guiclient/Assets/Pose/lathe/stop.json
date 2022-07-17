@@ -1,6 +1,9 @@
 {
     "pose": "关机",
     "danger": true,
+    "motion": "turn",
+    "motion_name": "转轮进刀",
+    "motion_value": 15.6,
     "nodes": [
         {
             "x": 467,

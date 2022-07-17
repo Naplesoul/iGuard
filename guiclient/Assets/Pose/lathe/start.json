@@ -1,6 +1,9 @@
 {
     "pose": "开机",
     "danger": false,
+    "motion": "wrench",
+    "motion_name": "拧",
+    "motion_value": 15.6,
     "nodes": [
         {
             "x": 467,

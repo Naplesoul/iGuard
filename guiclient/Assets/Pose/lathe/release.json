@@ -1,6 +1,9 @@
 {
     "pose": "取下工件",
     "danger": false,
+    "motion": "stand",
+    "motion_name": "无",
+    "motion_value": 15.6,
     "nodes": [
         {
             "x": 169,

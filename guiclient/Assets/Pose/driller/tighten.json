@@ -1,5 +1,8 @@
 {
     "pose": "夹紧工件",
+    "motion": "stand",
+    "motion_name": "无",
+    "motion_value": 15.6,
     "danger": false,
     "nodes": [
         {

@@ -2474,6 +2474,8 @@ MonoBehaviour:
   simiText: {fileID: 1964630562}
   nextText: {fileID: 1713232576}
   timeText: {fileID: 638986184}
+  actText: {fileID: 1743343488}
+  simText: {fileID: 1039969019}
   lathe: {fileID: 8531370648323002704}
   driller: {fileID: 6296914989888977165}
 --- !u!4 &1295350303
@@ -2502,8 +2504,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f98246f5809ca0045bbb292dcf75a536, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  actText: {fileID: 1743343488}
-  simText: {fileID: 1039969019}
 --- !u!1 &1306025253
 GameObject:
   m_ObjectHideFlags: 0
@@ -14936,7 +14936,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6296914989888977165}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.801, y: 0.00000011920929, z: 0.5}
+  m_LocalPosition: {x: 1.124, y: 0.00000011920929, z: -0.604}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 5203933427321919648}
@@ -19385,7 +19385,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8531370648323002704}
   m_LocalRotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0.5, y: 0.767, z: 0.2}
+  m_LocalPosition: {x: 0.46, y: 0.767, z: 0.64}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 1499340159}
