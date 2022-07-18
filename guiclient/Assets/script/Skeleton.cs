@@ -530,7 +530,7 @@ public class Skeleton : MonoBehaviour
         driller.SetActive(value == 1);
         if (value == 0){
             currentObject = lathe;
-            keyPoseList = new string[4]{"lathe/tighten", "lathe/start", "lathe/stop", "lathe/release"};
+            keyPoseList = new string[4]{"lathe/tighten_knife", "lathe/tighten", "lathe/start", "lathe/stop"};
             currKeyPoseIndex = -1;
             NextKeyPos();
         }else if (value == 1){

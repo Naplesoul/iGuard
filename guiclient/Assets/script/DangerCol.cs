@@ -10,9 +10,9 @@ public class DangerCol : MonoBehaviour
 {
     public static Text dangerText;
 
-    public static char dangerLevel = '@';
 
     private static string ip = "192.168.0.104";
+
     private static int port = 40790;
     public static Socket socket;
 
@@ -31,21 +31,18 @@ public class DangerCol : MonoBehaviour
 
     private void OnCollisionStay(Collision other) {
         Debug.Log("Danger!");
-        if (other.gameObject.name.Contains("node") && level[0] > dangerLevel){
+        if (other.gameObject.name.Contains("node")){
             dangerText.text = "！！误触" + level + "级危险区：" + other.gameObject.name;
-            dangerLevel = level[0];
-            SendMsg(level);
+            SendMsg("<" + level);
         }else if (other.gameObject.name.Contains("pNode")){
             dangerText.text = "可能进入危险区：" + other.gameObject.name;
-            //SendMsg("A");
         }
     }
 
     private void OnCollisionExit(Collision other) {
         if (dangerText.text.Contains(other.gameObject.name)){
             dangerText.text = "当前无危险";
-            dangerLevel = '@';
-            SendMsg(" ");
+            SendMsg(">" + level);
         }
     }
 
@@ -56,7 +53,6 @@ public class DangerCol : MonoBehaviour
 
     public static void noDanger(){
         dangerText.text = "当前无危险";
-        dangerLevel = '@';
-        SendMsg(" ");
+        SendMsg("  ");
     }
 }
