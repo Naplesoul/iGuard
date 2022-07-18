@@ -6,7 +6,7 @@ meta_dir = "./dataset/meta"
 record_dir = "./dataset/record"
 processed_dir = "./dataset/processed"
 
-gui_ip = "192.169.0.114"
+gui_ip = "192.168.0.111"
 gui_port = 50002
 gui_sim_port = 50003
 listen_port = 50001
