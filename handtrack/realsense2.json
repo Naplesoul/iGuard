@@ -5,8 +5,8 @@
     "camera_id": 2,
     "device_name": "Intel RealSense D435",
     "serial": "819612071399",
-    "camera_position": [-965, 80, 1770],
-    "camera_direction_x": [-1, 0, 0],
-    "camera_direction_y": [0, 1, 0],
-    "camera_direction_z": [0, 0, -1]
+    "camera_position": [0, 0, 0],
+    "camera_direction_x": [1, 0, 0],
+    "camera_direction_y": [0, 1, 1.732],
+    "camera_direction_z": [0, -1.732, 1]
 }
