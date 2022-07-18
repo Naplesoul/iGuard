@@ -1,8 +1,8 @@
 {
     "listen_port": 50000,
-    "gui_ip": "192.169.0.114",
+    "gui_ip": "192.168.0.114",
     "gui_port": 50002,
-    "sim_ip": "192.169.0.112",
+    "sim_ip": "192.168.0.112",
     "sim_port": 50001,
     "main_camera_id": 1,
     "minor_camera_id": 0,

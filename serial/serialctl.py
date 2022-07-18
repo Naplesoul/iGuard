@@ -1,9 +1,13 @@
+from base64 import decode
 import serial
-import serial.tools.list_ports
+import time
 
 import socket
 
 portx="/dev/ttyACM0"
+last_time = time.time()
+dl = "@"
+c = 0
 
 ser = serial.Serial(portx, 9600, timeout=1, parity=serial.PARITY_NONE)
 if (ser.isOpen()):
@@ -15,4 +19,11 @@ sock.bind(("0.0.0.0", 40790))
 
 while True:
     msg, _  = sock.recvfrom(1)
-    ser.write(msg)
+    print(msg.decode())
+    cur_time = time.time()
+    if (cur_time > last_time + 0.49):
+        ser.write(" ".encode())
+    last_time = cur_time
+    c += 1
+    if c % 10 == 0:
+        ser.write(msg)
