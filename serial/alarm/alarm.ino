@@ -15,28 +15,10 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  //Serial.print("Hello, world!\n");
   c = Serial.read();
-  if(c == 'A' || c == 'B' || c == 'C' || c == 'D' || c == 'E' || c == 'F' || c == 'X' || c == 'Y' || c == ' '){
+  if(c == 'A' || c == 'B' || c == 'C' || c == 'D' || c == 'E' || c == 'F' || c == ' '){
     if (stat != c){
-      if (c == 'X'){
-        if (stat != ' ' && delay_time > 100){
-          delay_time -= 80;
-          stat += 1;
-        }else if (stat == ' '){
-          delay_time = 500;
-          stat = 'A';
-        }
-      }else if(c == 'Y'){
-        if (stat != ' ' && delay_time < 500){
-          delay_time += 80;
-          stat -= 1;
-        }else if (stat == 'A'){
-          noTone(buzzerPin);
-          digitalWrite(redPin, LOW);
-          stat = ' ';
-        }
-      }else if(c == ' '){
+      if(c == ' '){
         stat = c;
         noTone(buzzerPin);
         digitalWrite(redPin, LOW);
@@ -48,7 +30,7 @@ void loop() {
     }
   }
   if (stat != ' '){
-    tone(buzzerPin, 880, 100);
+    tone(buzzerPin, 880, 99);
     delay(delay_time);
   }else{
     delay(500);
