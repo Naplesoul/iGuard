@@ -17,10 +17,12 @@ public class DangerCol : MonoBehaviour
     public static Socket socket;
 
     public string level;
+    private int alert_id;
 
     // Start is called before the first frame update
     void Start()
     {
+        alert_id = -1;
     }
 
     // Update is called once per frame
@@ -30,12 +32,18 @@ public class DangerCol : MonoBehaviour
     }
 
     private void OnCollisionStay(Collision other) {
-        Debug.Log("Danger!");
         if (other.gameObject.name.Contains("node")){
-            dangerText.text = "！！误触" + level + "级危险区：" + other.gameObject.name;
+            dangerText.text = "！！误触" + level + "级危险区：" + this.name;
             SendMsg("<" + level);
         }else if (other.gameObject.name.Contains("pNode")){
             dangerText.text = "可能进入危险区：" + other.gameObject.name;
+        }
+    }
+
+    private void OnCollisionEnter(Collision other) {
+        Debug.Log("Danger!");
+        if (other.gameObject.name.Contains("node")){
+            alert_id = Alert.addAlertMsg("请离开危险区：" + this.name, (level[0] - '@') * 10);
         }
     }
 
@@ -43,6 +51,10 @@ public class DangerCol : MonoBehaviour
         if (dangerText.text.Contains(other.gameObject.name)){
             dangerText.text = "当前无危险";
             SendMsg(">" + level);
+        }
+        if (other.gameObject.name.Contains("node")){
+            Alert.removeAlertMsg(alert_id);
+            alert_id = -1;
         }
     }
 

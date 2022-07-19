@@ -38,6 +38,10 @@ public class WebPack_Vector3{
 [System.Serializable]
 public class WebPack_NodeInfo{
     public long frame_id;
+    public float carriage_x;
+    public float carriage_z;
+    public bool running;
+    
     public WebPack_Vector3[] body_nodes;
     public WebPack_Vector3[] left_hand_nodes;
     public WebPack_Vector3[] right_hand_nodes;
@@ -73,10 +77,13 @@ public class Skeleton : MonoBehaviour
     public GameObject bonePrefab;
     private Vector3[] keyPose, okPose;
 
+    private int keyAlertId = -1;
+
     private GameObject[] preNodes;
     private Vector3[] prePose;
 
-    private string[] keyPoseList;
+    private string[] keyPoseNameList;
+    private KeyPack_NodeInfo[] keyPoseList;
     private string[] actionList;
     private int currKeyPoseIndex;
     private long last_frame_id;
@@ -125,7 +132,6 @@ public class Skeleton : MonoBehaviour
         hbnMap = new Vector2Int[21];
         keyPose = new Vector3[19];
         okPose = new Vector3[21];
-        keyPoseList = new string[0];
         prePose = new Vector3[19];
         preNodes = new GameObject[19];
         currKeyPoseIndex = 0;
@@ -288,23 +294,32 @@ public class Skeleton : MonoBehaviour
             rh_bones[i].transform.localScale = new Vector3(0.005f, upward.magnitude / 2, 0.005f); 
         }
 
-        float cos = GetSimilarity_body(keyPose);
-        float cos2 = GetSimilarity_hand(okPose);
-        simiText.text = "当前步骤完成度：" + Mathf.Round(cos * 10000) / 100 + "%/" + Mathf.Round(cos2 * 10000) / 100 + "%";
-        simText.text = "当前动作相似度：" + sim;
-        if (cos > 0.9){
-            body_nodes[0].GetComponent<MeshRenderer>().material = keyMat;
-            NextKeyPos();
-        }else{
-            body_nodes[0].GetComponent<MeshRenderer>().material = defMat;
-        }
-        if (cos2 > 0.9 && Time.time - last_ok_time > 5){
+        float cos = GetSimilarity_hand(okPose);
+        if (cos > 0.9 && Time.time - last_ok_time > 5){
             last_ok_time = Time.time;
-            body_nodes[0].GetComponent<MeshRenderer>().material = keyMat;
             NextKeyPos();
         }else{
-            body_nodes[0].GetComponent<MeshRenderer>().material = defMat;
+            cos = GetSimilarity_body(keyPose);
+            simiText.text = "当前步骤完成度：" + Mathf.Round(cos * 10000) / 100 + "%";
+            if (cos > 0.9){
+                //body_nodes[0].GetComponent<MeshRenderer>().material = keyMat;
+                Alert.removeAlertMsg(keyAlertId);
+                NextKeyPos();
+            }else{
+                //body_nodes[0].GetComponent<MeshRenderer>().material = defMat;
+                for (int i = 0; i < keyPoseNameList.Length; i++){
+                    cos = GetSimilarity_body(keyPose);
+                    if (cos > 0.9){
+                        int ret = Alert.updateAlertMsg(keyAlertId, "遗漏重要步骤：" + keyPoseNameList[currKeyPoseIndex], 35);
+                        if (ret != keyAlertId){
+                            keyAlertId = ret;
+                        }
+                        break;
+                    }
+                }
+            }
         }
+        simText.text = "当前动作相似度：" + sim;
 
         Camera.main.transform.localPosition = body_nodePos[3] - camera_relative_pos;
         //new Vector3(body_nodePos[3].x - 1.8f, body_nodePos[3].y + 1.2f, body_nodePos[3].z - 0.8f);
@@ -314,23 +329,8 @@ public class Skeleton : MonoBehaviour
     }
 
     private float GetSimilarity_body(Vector3[] kp){
-        //Vector3 m = new Vector3();
         float r = 0;
-        // if (!strict){
-        //     for (int i = 0; i < 19 ;i ++){
-        //         m += keyPose[i] - nodePos[i];
-        //     }
-        //     m = m / 20;
-        // }
         float m1 = 0, m2 = 0;
-        // for (int i = 0; i < 25 ;i ++){
-        //     if (nodes[i] == null) continue;
-        //     r += (nodePos[i] + m).x * (kp[i].x);
-        //     r += (nodePos[i] + m).y * (kp[i].y);
-        //     r += (nodePos[i] + m).z * (kp[i].z);
-        //     m1 += (nodePos[i] + m).magnitude * (nodePos[i] + m).magnitude;
-        //     m2 += kp[i].magnitude * kp[i].magnitude;
-        // }
         for (int i = 0; i < 18; i ++){
             if (i == 7 || i == 11) continue;
             Vector3 a = body_nodePos[bnMap[i].x], b = body_nodePos[bnMap[i].y];
@@ -366,7 +366,40 @@ public class Skeleton : MonoBehaviour
     private void NextKeyPos(){
         currKeyPoseIndex ++;
         if (currKeyPoseIndex < keyPoseList.Length){
-            LoadKeyPos(keyPoseList[currKeyPoseIndex]);
+            KeyPack_NodeInfo node_info = keyPoseList[currKeyPoseIndex];
+            for (int i = 0; i < 19 ;i ++){
+                keyPose[i].x = node_info.nodes[i].x / 1000;
+                keyPose[i].y = node_info.nodes[i].y / 1000;
+                keyPose[i].z = node_info.nodes[i].z / 1000;
+            }
+            foreach (Transform child in currentObject.transform)
+            {
+                if(child.gameObject.name.Contains("dangerCylinder")){
+                    CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+                    if (node_info.danger){
+                        collider.enabled = true;
+                        child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+                    }else{
+                        collider.enabled = false;
+                        child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                    }
+                }
+                if(child.gameObject.name.Contains("dangerCube")){
+                    BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+                    if (node_info.danger){
+                        collider.enabled = true;
+                        child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+                    }else{
+                        collider.enabled = false;
+                        child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                    }
+                }
+            }
+            if (!node_info.danger){
+                DangerCol.noDanger();
+            }
+            nextText.text = "请执行关键步骤("+ (currKeyPoseIndex + 1) +"/"+ keyPoseList.Length +")：" + node_info.pose;
+            actText.text = "当前应做动作：" + node_info.motion_name;
         }else {
             nextText.text = "无关键步骤信息";
             foreach (Transform child in currentObject.transform)
@@ -385,45 +418,15 @@ public class Skeleton : MonoBehaviour
         }
     }
 
-    private void LoadKeyPos(string filename){
-        Debug.Log("loading key pose " + filename);
-        StreamReader sr = new StreamReader("./Assets/Pose/" + filename + ".json", Encoding.UTF8);
-        string content =  sr.ReadToEnd();
-        sr.Close();
-        KeyPack_NodeInfo node_info = JsonUtility.FromJson<KeyPack_NodeInfo>(content);
-        for (int i = 0; i < 19 ;i ++){
-            keyPose[i].x = node_info.nodes[i].x / 1000;
-            keyPose[i].y = node_info.nodes[i].y / 1000;
-            keyPose[i].z = node_info.nodes[i].z / 1000;
+    private void LoadKeyPos(){
+        for (int i = 0; i < keyPoseNameList.Length; i++){
+            Debug.Log("loading key pose " + keyPoseNameList[i]);
+            StreamReader sr = new StreamReader("./Assets/Pose/" + keyPoseNameList[i] + ".json", Encoding.UTF8);
+            string content =  sr.ReadToEnd();
+            sr.Close();
+            KeyPack_NodeInfo node_info = JsonUtility.FromJson<KeyPack_NodeInfo>(content);
+            keyPoseList[i] = node_info;
         }
-        foreach (Transform child in currentObject.transform)
-        {
-            if(child.gameObject.name.Contains("dangerCylinder")){
-                CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
-                if (node_info.danger){
-                    collider.enabled = true;
-                    child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
-                }else{
-                    collider.enabled = false;
-                    child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                }
-            }
-            if(child.gameObject.name.Contains("dangerCube")){
-                BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
-                if (node_info.danger){
-                    collider.enabled = true;
-                    child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
-                }else{
-                    collider.enabled = false;
-                    child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                }
-            }
-        }
-        if (!node_info.danger){
-            DangerCol.noDanger();
-        }
-        nextText.text = "请执行关键步骤("+ (currKeyPoseIndex + 1) +"/"+ keyPoseList.Length +")：" + node_info.pose;
-        actText.text = "当前应做动作：" + node_info.motion_name;
     }
 
     private void LoadOKPos(){
@@ -502,6 +505,10 @@ public class Skeleton : MonoBehaviour
                     rh_boneActive[i] = false;
                 }
             }
+
+            LatheStatus.carriage_x = ni.carriage_x / 1000;
+            LatheStatus.carriage_z = ni.carriage_z / 1000;
+            LatheStatus.running = ni.running;
             // if (last_frame_id != -1){
             //     for (int i = 0; i < 19 ;i ++){
             //         prePose[i].x = (body_nodePos[i].x - body_lastNodePos[i].x) < 0.1 ? (2 * body_nodePos[i].x - body_lastNodePos[i].x) : body_lastNodePos[i].x;
@@ -526,7 +533,7 @@ public class Skeleton : MonoBehaviour
             Debug.Log(node_info_str);
 
             WebPack_NodeInfo node_info = JsonUtility.FromJson<WebPack_NodeInfo>(node_info_str);
-            //Debug.Log(node_info.node_num);
+            Debug.Log("recv: " + node_info.carriage_x);
             //Debug.Log(node_info.nodes);
             SetNodePos(node_info);
         }
@@ -537,13 +544,16 @@ public class Skeleton : MonoBehaviour
         driller.SetActive(value == 1);
         if (value == 0){
             currentObject = lathe;
-            keyPoseList = new string[4]{"lathe/tighten_knife", "lathe/tighten", "lathe/start", "lathe/stop"};
+            keyPoseNameList = new string[4]{"lathe/tighten_knife", "lathe/tighten", "lathe/start", "lathe/stop"};
+            keyPoseList = new KeyPack_NodeInfo[4];
+            LoadKeyPos();
             currKeyPoseIndex = -1;
             NextKeyPos();
         }else if (value == 1){
             currentObject = driller;
-            keyPoseList = new string[5]{"driller/tighten", "driller/start", "driller/drill", "driller/stop", "driller/release"};
-            actionList = new string[2]{"driller/drill", "driller/brush"};
+            keyPoseNameList = new string[5]{"driller/tighten", "driller/start", "driller/drill", "driller/stop", "driller/release"};
+            keyPoseList = new KeyPack_NodeInfo[5];
+            LoadKeyPos();
             currKeyPoseIndex = -1;
             NextKeyPos();
         }
