@@ -49,7 +49,6 @@ def wait_next_frame() -> int:
 
 def main():
     global fps, frametime
-    print("start")
 
     config_filename = sys.argv[len(sys.argv) - 1]
     config_file = open(config_filename)
@@ -64,7 +63,13 @@ def main():
     send.init(camera_id, user_config["server_ip"], user_config["server_port"], update_offset)
 
     camera.init(serial)
-    machine.calibrate(camera.get_color_image())
+
+    machine.init(user_config["range_x"], user_config["range_z"])
+    for i in range(5):
+        camera.get_color_image()
+    while not machine.calibrate(camera.get_color_image()):
+        pass
+            
     hand.init([user_config["camera_direction_x"], user_config["camera_direction_y"], user_config["camera_direction_z"]])
 
     while True:

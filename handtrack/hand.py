@@ -82,8 +82,8 @@ def process(left_hand_landmarks, right_hand_landmarks, left_score: float, right_
     return payload
 
 
-def detect(color_image) -> Dict:
-    rgb = cv2.cvtColor(cv2.flip(color_image, 1), cv2.COLOR_BGR2RGB)
+def detect(bgr_image) -> Dict:
+    rgb = cv2.cvtColor(cv2.flip(bgr_image, 1), cv2.COLOR_BGR2RGB)
 
     left_hand = []
     right_hand = []
