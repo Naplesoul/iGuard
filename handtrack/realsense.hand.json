@@ -9,6 +9,6 @@
     "camera_direction_x": [1, 0, 0],
     "camera_direction_y": [0, 1, 1.732],
     "camera_direction_z": [0, -1.732, 1],
-    "range_x": 400,
-    "range_z": 200
+    "range_x": 460,
+    "range_z": 100
 }

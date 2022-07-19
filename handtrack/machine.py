@@ -7,8 +7,8 @@ red_max = np.array([255, 255, 255])
 width = 640
 height = 480
 
-range_x = 400
-range_z = 200
+range_x = 460
+range_z = 100
 
 carriage_origin_x = 640
 carriage_origin_y = 0
