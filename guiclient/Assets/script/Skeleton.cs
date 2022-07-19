@@ -82,6 +82,8 @@ public class Skeleton : MonoBehaviour
     private long last_frame_id;
     private float last_ok_time;
 
+    private Vector3 camera_relative_pos;
+
     public Material keyMat;
     public Material defMat;
     public Material preMat;
@@ -128,6 +130,8 @@ public class Skeleton : MonoBehaviour
         preNodes = new GameObject[19];
         currKeyPoseIndex = 0;
         last_frame_id = -1;
+
+        camera_relative_pos = new Vector3(1.8f, -1.2f, 0.8f);
         
         for (int i = 0; i < 19 ;i ++){
             body_nodes[i] = GameObject.Instantiate(nodePrefab, new Vector3(0, -10, 0), new Quaternion());
@@ -302,7 +306,10 @@ public class Skeleton : MonoBehaviour
             body_nodes[0].GetComponent<MeshRenderer>().material = defMat;
         }
 
-        Camera.main.transform.localPosition = new Vector3(body_nodePos[3].x - 1.8f, body_nodePos[3].y + 1.2f, body_nodePos[3].z - 0.8f);
+        Camera.main.transform.localPosition = body_nodePos[3] - camera_relative_pos;
+        //new Vector3(body_nodePos[3].x - 1.8f, body_nodePos[3].y + 1.2f, body_nodePos[3].z - 0.8f);
+        
+        Camera.main.transform.localRotation = Quaternion.LookRotation(camera_relative_pos, new Vector3(0, 1, 0));
         timeText.text = string.Format("{0:T}", DateTime.Now);
     }
 
