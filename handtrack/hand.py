@@ -1,136 +1,111 @@
-import json
-import math
-import sys
-import time
 import cv2
 import numpy as np
-import datetime as dt
 import mediapipe as mp
-import pyrealsense2 as rs
+from typing import Dict
 
-import send
-
-stream_res_x = 640
-stream_res_y = 480
-stream_fps = 30
-fps = 10
-frametime = 1 / fps
-first_frametime = dt.datetime.strptime("2022-07-15 00:00:00", "%Y-%m-%d %H:%M:%S").timestamp()
-last_frame_id = 0
-offset = 0
+M_inv = None
+mpHands = None
 
 
-def update_offset(_offset):
-    global offset
-    offset += _offset / 1000
-    print(f"offset: {int(offset * 1000)} ms")
-
-
-def wait_next_frame() -> int:
-    global last_frame_id
-
-    now = dt.datetime.today().timestamp()
-    total_time = now - first_frametime
-    frame_id = math.ceil(total_time / frametime)
-    if frame_id <= last_frame_id:
-        frame_id += 1
-    sleep_time = first_frametime + frame_id * frametime - now + offset
-    # print(sleep_time)
-    if sleep_time > 0.005:
-        time.sleep(sleep_time)
-    last_frame_id = frame_id
-    return frame_id
-
-
-def main():
-    global fps, frametime
-
-    config_filename = sys.argv[len(sys.argv) - 1]
-    config_file = open(config_filename)
-    user_config = json.load(config_file)
-    config_file.close()
-
-    fps = user_config["fps"]
-    frametime = 1 / fps
-    serial = user_config["serial"]
-    camera_id = user_config["camera_id"]
-
-    send.init(camera_id, user_config["server_ip"], user_config["server_port"], update_offset,
-              [user_config["camera_direction_x"], user_config["camera_direction_y"], user_config["camera_direction_z"]])
-
-    # ====== Realsense ======
-    device = ""
-    realsense_ctx = rs.context()
-    for i in range(len(realsense_ctx.devices)):
-        detected_camera = realsense_ctx.devices[i].get_info(rs.camera_info.serial_number)
-        if detected_camera == serial:
-            device = detected_camera
-            break
-    if device == "":
-        print(f"Camera SN {serial} Not Found")
-        exit(-1)
+def init(dir: list):
+    global M_inv, mpHands
     
-    pipeline = rs.pipeline()
-    config = rs.config()
-    config.enable_stream(rs.stream.depth, stream_res_x, stream_res_y, rs.format.z16, stream_fps)
-    config.enable_stream(rs.stream.color, stream_res_x, stream_res_y, rs.format.bgr8, stream_fps)
-    profile = pipeline.start(config)
+    dir_x = np.linalg.norm(dir[0])
+    dir_y = np.linalg.norm(dir[1])
+    dir_z = np.linalg.norm(dir[2])
 
-    align_to = rs.stream.color
-    align = rs.align(align_to)
+    r3 = np.array([dir[0] / dir_x, dir[1] / dir_y, dir[2] / dir_z])
+    R3_inv = np.linalg.inv(r3)
+    R4_inv = np.identity(4)
+    R4_inv[0][:3] = R3_inv[0]
+    R4_inv[1][:3] = R3_inv[1]
+    R4_inv[2][:3] = R3_inv[2]
+    T_inv = np.identity(4)
+    M_inv = np.dot(T_inv, R4_inv)
+    print(f"M_inv:\n{M_inv}")
 
     mpHands = mp.solutions.hands.Hands()
 
-    while True:
-        frame_id = wait_next_frame()
-        start_time = dt.datetime.today().timestamp()
 
-        # Get and align frames
-        frames = pipeline.wait_for_frames()
-        aligned_frames = align.process(frames)
-        color_frame = aligned_frames.get_color_frame()
-        if not color_frame:
-            send.send(frame_id, [], [], 0, 0)
-            print("No Hands found")
-            continue
+def convert(pos: list) -> list:
+    pos = np.array(pos) * 1000
+    return np.dot(M_inv, pos)[:3].tolist()
 
-        color_image = np.asanyarray(color_frame.get_data())
-        color_image = cv2.flip(color_image,1)
-        color_images_rgb = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)
 
-        results = mpHands.process(color_images_rgb)
-        if not results.multi_hand_world_landmarks:
-            send.send(frame_id, [], [], 0, 0)
-            print("No Hands found")
-            continue
+def process(left_hand_landmarks, right_hand_landmarks, left_score: float, right_score: float) -> Dict:
+    left_hand = []
+    right_hand = []
+    payload = {}
+
+    for pos in left_hand_landmarks:
+        left_hand.append(convert([-pos.x, -pos.y, pos.z, 1]))
+    
+    for pos in right_hand_landmarks:
+        right_hand.append(convert([-pos.x, -pos.y, pos.z, 1]))
+    
+    length = len(left_hand)
+    if length > 0:
+        left_x = left_hand[0][0]
+        left_y = left_hand[0][1]
+        left_z = left_hand[0][2]
+
+        left_hand[0][0] = int(0)
+        left_hand[0][1] = int(0)
+        left_hand[0][2] = int(0)
+
+        for i in range(1, length):
+            left_hand[i][0] = int(left_hand[i][0] - left_x)
+            left_hand[i][1] = int(left_hand[i][1] - left_y)
+            left_hand[i][2] = int(left_hand[i][2] - left_z)
         
-        left_hand = []
-        right_hand = []
-        left_score = 0
-        right_score = 0
-        for i in range(len(results.multi_handedness)):
-            label = results.multi_handedness[i].classification[0].label
-            if label == "Left":
-                left_score = results.multi_handedness[i].classification[0].score
-                left_hand = results.multi_hand_world_landmarks[i].landmark
+        payload["left_hand_nodes"] = left_hand
+        payload["left_hand_score"] = int(left_score * 100)
+    
+    length = len(right_hand)
+    if length > 0:
+        right_x = right_hand[0][0]
+        right_y = right_hand[0][1]
+        right_z = right_hand[0][2]
 
-            elif label == "Right":
-                right_score = results.multi_handedness[i].classification[0].score
-                right_hand = results.multi_hand_world_landmarks[i].landmark
+        right_hand[0][0] = int(0)
+        right_hand[0][1] = int(0)
+        right_hand[0][2] = int(0)
+
+        for i in range(1, length):
+            right_hand[i][0] = int(right_hand[i][0] - right_x)
+            right_hand[i][1] = int(right_hand[i][1] - right_y)
+            right_hand[i][2] = int(right_hand[i][2] - right_z)
+        
+        payload["right_hand_nodes"] = right_hand
+        payload["right_hand_score"] = int(right_score * 100)
+    
+    return payload
+
+
+def detect(color_image) -> Dict:
+    rgb = cv2.cvtColor(cv2.flip(color_image, 1), cv2.COLOR_BGR2RGB)
+
+    left_hand = []
+    right_hand = []
+    left_score = 0
+    right_score = 0
+
+    results = mpHands.process(rgb)
+    if not results.multi_hand_world_landmarks:
+        print("No Hands found")
+        return {}
+        
+    for i in range(len(results.multi_handedness)):
+        label = results.multi_handedness[i].classification[0].label
+        if label == "Left":
+            left_score = results.multi_handedness[i].classification[0].score
+            left_hand = results.multi_hand_world_landmarks[i].landmark
+
+        elif label == "Right":
+            right_score = results.multi_handedness[i].classification[0].score
+            right_hand = results.multi_hand_world_landmarks[i].landmark
             
-            if left_score > 0 and right_score > 0:
-                break
-            
-        send.send(frame_id, left_hand, right_hand, left_score, right_score)
+        if left_score > 0 and right_score > 0:
+            break
 
-        end_time = dt.datetime.today().timestamp()
-        process_time = end_time - start_time
-        print(f"process time: {int(process_time * 1000)}ms")
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\tKeyboardInterrupt")
-        sys.exit(-1)
+    return process(left_hand, right_hand, left_score, right_score)
