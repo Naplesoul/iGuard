@@ -1,128 +1,120 @@
 import cv2
 import numpy as np
 
-red_min = np.array([0, 151, 100])
-red_max = np.array([255, 255, 255])
+red_min = np.array([0, 160, 100], dtype="uint8")
+red_max = np.array([255, 255, 255], dtype="uint8")
 
-width = 640
-height = 480
+green_min = np.array([0, 0, 100], dtype="uint8")
+green_max = np.array([255, 108, 200], dtype="uint8")
 
-range_x = 460
-range_z = 100
+area_min = 100
+width_min = 6
 
-carriage_origin_x = 640
-carriage_origin_y = 0
-carriage_threshold = 0
+switch = [0, 0, 0, 0]
+carriage_lower_left = [0, 0, 0, 0]
+carriage_upper_left = [0, 0, 0, 0]
+carriage_upper_right = [0, 0, 0, 0]
+carriage_lower_right = [0, 0, 0, 0]
 
-switch_origin_x = 0
-switch_origin_y = 0
-switch_threshold = 0
+range_y = 0
+left_vector = [0, 0]
+right_vector = [0, 0]
+around_switch = [[0, 0]]
+
+carriage_x = 0
+carriage_z = 0
+running = False
+
+def init(calibration):
+    global switch, around_switch
+    global carriage_lower_left
+    global carriage_upper_left
+    global carriage_upper_right
+    global carriage_lower_right
+    global range_y, left_vector, right_vector
+
+    switch = calibration["switch"]
+    around_switch = []
+    around_switch.append([switch[0] - 1, switch[1] - 1])
+    around_switch.append([switch[0] - 1, switch[1]])
+    around_switch.append([switch[0] - 1, switch[1] + 1])
+    around_switch.append([switch[0], switch[1] - 1])
+    around_switch.append([switch[0], switch[1]])
+    around_switch.append([switch[0], switch[1] + 1])
+    around_switch.append([switch[0] + 1, switch[1] - 1])
+    around_switch.append([switch[0] + 1, switch[1]])
+    around_switch.append([switch[0] + 1, switch[1] + 1])
+
+    carriage_lower_left = calibration["carriage_lower_left"]
+    carriage_upper_left = calibration["carriage_upper_left"]
+    carriage_upper_right = calibration["carriage_upper_right"]
+    carriage_lower_right = calibration["carriage_lower_right"]
+    range_y = carriage_lower_left[1] - carriage_upper_left[1]
+    left_vector = [carriage_lower_left[0] - carriage_upper_left[0], carriage_lower_left[1] - carriage_upper_left[1]]
+    right_vector = [carriage_lower_right[0] - carriage_upper_right[0], carriage_lower_right[1] - carriage_upper_right[1]]
 
 
-def init(x, z):
-    global range_x, range_z
-    range_x = x
-    range_z = z
+def find(lab_image):
+    red_img = cv2.inRange(lab_image, red_min, red_max)
+    # cv2.imwrite("red.png", red_img)
+    # cv2.imwrite("green.png", cv2.inRange(lab_image, green_min, green_max))
+    contours_to_select, _ = cv2.findContours(red_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-
-def reset():
-    global width, height
-    global carriage_origin_x, carriage_origin_y, carriage_threshold
-    global switch_origin_x, switch_origin_y, switch_threshold
-    
-    width = 640
-    height = 480
-    
-    carriage_origin_x = 640
-    carriage_origin_y = 0
-    carriage_threshold = 0
-
-    switch_origin_x = 0
-    switch_origin_y = 0
-    switch_threshold = 0
-
-
-def calibrate(bgr_image) -> bool:
-    global width, height
-    global carriage_origin_x, carriage_origin_y, carriage_threshold
-    global switch_origin_x, switch_origin_y, switch_threshold
-
-    height = bgr_image.shape[0]
-    width = bgr_image.shape[1]
-    
-    detect_img = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2LAB)
-    red_img = cv2.inRange(detect_img, red_min, red_max)
-    contours, _ = cv2.findContours(red_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-
-    contours_num = 0
-    for contour in contours:
+    contours = []
+    for contour in contours_to_select:
         rotated_rect = cv2.minAreaRect(contour)
-        area = rotated_rect[1][0] * rotated_rect[1][1]
-        if area < 100:
+        w = int(rotated_rect[1][0])
+        h = int(rotated_rect[1][1])
+        area = w * h
+
+        # print(rotated_rect, lab_image[int(rotated_rect[0][1])][int(rotated_rect[0][0])], area)
+        if area < area_min or w < width_min or h < width_min:
             continue
-
-        contours_num += 1
-        center_x = rotated_rect[0][0]
-        center_y = rotated_rect[0][1]
-        
-        if center_x < carriage_origin_x:
-            carriage_origin_x = center_x
-            carriage_origin_y = center_y
-            carriage_threshold = 2 * max(rotated_rect[1][0], rotated_rect[1][1])
-        
-        if center_x > switch_origin_x:
-            switch_origin_x = center_x
-            switch_origin_y = center_y
-            switch_threshold = 2 * max(rotated_rect[1][0], rotated_rect[1][1])
+        x = int(rotated_rect[0][0])
+        y = int(rotated_rect[0][1])
+        contours.append([x, y, w, h])
     
-    if contours_num < 2:
-        print("Calibration failed: cannot find enough contours.")
-        reset()
-        return False
-    
-    threshold = max(carriage_threshold, switch_threshold)
-    if abs(carriage_origin_x - switch_origin_x) < threshold and abs(carriage_origin_y - switch_origin_y) < threshold:
-        print("Calibration failed: contours too close")
-        print(f"Carriage ({int(carriage_origin_x)}, {carriage_origin_y}) Switch ({int(switch_origin_x)}, {int(switch_origin_y)})")
-        reset()
-        return False
+    return sorted(contours, key=lambda k: k[0])
 
-    print(f"Calibrated: Carriage ({int(carriage_origin_x)}, {carriage_origin_y}) Switch ({int(switch_origin_x)}, {int(switch_origin_y)})")
-    return True
+
+def convert(carriage):
+    global carriage_upper_left
+    global carriage_upper_right
+
+    ratio = (carriage[1] - carriage_upper_left[1]) / range_y
+    mid_left_x = carriage_upper_left[0] + left_vector[0] * ratio
+    mid_right_x = carriage_upper_right[0] + right_vector[0] * ratio
+    x = int((carriage[0] - mid_left_x) / (mid_right_x - mid_left_x) * 100)
+    z = int(-ratio * 100)
+    return x, z
 
 
 def detect(bgr_image):
-    detect_img = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2LAB)
-    red_img = cv2.inRange(detect_img, red_min, red_max)
-    contours, _ = cv2.findContours(red_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    global carriage_x, carriage_z, running
 
-    carriage_x = 640
-    carriage_y = 0
+    lab_img = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2LAB)
 
-    switch_x = 0
-    switch_y = 0
+    for pixel in around_switch:
+        color = cv2.inRange(lab_img[pixel[1]][pixel[0]], green_min, green_max)
+        if color[0] == 255 and color[1] == 255 and color[2] == 255:
+            # green color
+            running = True
+            break
+        color = cv2.inRange(lab_img[pixel[1]][pixel[0]], red_min, red_max)
+        if color[0] == 255 and color[1] == 255 and color[2] == 255:
+            # red color
+            running = False
+            break
 
-    for contour in contours:
-        rotated_rect = cv2.minAreaRect(contour)
-        area = rotated_rect[1][0] * rotated_rect[1][1]
-        if area < 100:
-            continue
-        center_x = rotated_rect[0][0]
-        center_y = rotated_rect[0][1]
-
-        # print(center_x, center_y, detect_img[int(center_y)][int(center_x)])
-
-        if center_x < carriage_x:
-            carriage_x = center_x
-            carriage_y = center_y
-        
-        if center_x > switch_x:
-            switch_x = center_x
-            switch_y = center_y
+    rects = find(lab_img)
+    if len(rects) < 1:
+        return { "carriage_x": carriage_x, "carriage_z": carriage_z, "running": running }
     
-    machine_running = abs(switch_x - switch_origin_x) > switch_threshold or abs(switch_y - switch_origin_y) > switch_threshold
+    x, z = convert(rects[0])
     
-    x = int((carriage_x - carriage_origin_x) / width * range_x)
-    z = int((carriage_origin_y - carriage_y) / height * range_z)
-    machine_info = { "carriage_x": x, "carriage_z": z, "running": machine_running }
-    return machine_info
+    # if abs(x - carriage_x) > 10 or abs(z - carriage_z) > 20:
+    #     return { "carriage_x": carriage_x, "carriage_z": carriage_z, "running": running }
+    
+    carriage_x = x
+    carriage_z = z
+    return { "carriage_x": x, "carriage_z": z, "running": running }
