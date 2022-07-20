@@ -17,16 +17,17 @@ public class LatheStatus : MonoBehaviour
     public static float carriage_z = 0f;
     public static bool running = false;
 
+    private int alert_id;
+
     // Start is called before the first frame update
     void Start()
     {
-        
+        alert_id = -1;
     }
 
     // Update is called once per frame
     void Update()
     {
-
         //Debug.Log(carriage_x);
         Vector3 pos = lathe_big_carriage.transform.localPosition;
         pos.x = carriage_x;
@@ -38,15 +39,21 @@ public class LatheStatus : MonoBehaviour
 
 
         Vector3 rot = lathe_big_wheel.transform.localRotation.eulerAngles;
-        rot.y = carriage_x * 3000;
+        rot.y = pos.x * 5000;
         lathe_big_wheel.transform.localRotation = Quaternion.Euler(rot);
 
         rot = lathe_mid_wheel.transform.localRotation.eulerAngles;
-        rot.y = carriage_z * 3000;
+        rot.y = pos2.y * 40000;
         lathe_mid_wheel.transform.localRotation = Quaternion.Euler(rot);
 
         if (running){
             lathe_axle.transform.Rotate(new Vector3(0, 0, -2.5f));
+            if (pos.x > 0.65f){
+                alert_id = Alert.updateAlertMsg(alert_id, "即将撞车，请立即停止进刀", 100);
+            }else if (alert_id >= 0){
+                Alert.removeAlertMsg(alert_id);
+                alert_id = -1;
+            }
         }
     }
 }
