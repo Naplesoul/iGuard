@@ -55,6 +55,10 @@ def main():
     user_config = json.load(config_file)
     config_file.close()
 
+    config_file = open("calibration.json")
+    calibration_config = json.load(config_file)
+    config_file.close()
+
     fps = user_config["fps"]
     frametime = 1 / fps
     serial = user_config["serial"]
@@ -63,13 +67,7 @@ def main():
     send.init(camera_id, user_config["server_ip"], user_config["server_port"], update_offset)
 
     camera.init(serial)
-
-    machine.init(user_config["range_x"], user_config["range_z"])
-    for i in range(5):
-        camera.get_color_image()
-    while not machine.calibrate(camera.get_color_image()):
-        pass
-            
+    machine.init(calibration_config)   
     hand.init([user_config["camera_direction_x"], user_config["camera_direction_y"], user_config["camera_direction_z"]])
 
     while True:

@@ -8,7 +8,5 @@
     "camera_position": [-965, 80, 1770],
     "camera_direction_x": [0, 0, -1],
     "camera_direction_y": [0, 1, 0],
-    "camera_direction_z": [-1, 0, 0],
-    "range_x": 460,
-    "range_z": 100
+    "camera_direction_z": [-1, 0, 0]
 }
