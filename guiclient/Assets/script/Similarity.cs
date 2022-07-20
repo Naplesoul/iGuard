@@ -41,7 +41,7 @@ public class Similarity : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Skeleton.sim = simi;
+        if (Skeleton.sim != simi) Skeleton.sim = simi;
     }
 
     void receiveFromClient(){

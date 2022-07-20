@@ -18,6 +18,7 @@ public class KeyPack_Vector3{
 
 [System.Serializable]
 public class KeyPack_NodeInfo{
+    public string type;
     public string pose;
     public bool danger;
     public string motion;
@@ -299,18 +300,16 @@ public class Skeleton : MonoBehaviour
             last_ok_time = Time.time;
             NextKeyPos();
         }else{
-            cos = GetSimilarity_body(keyPose);
+            cos = GetSimilarity(keyPoseList[currKeyPoseIndex]);
             simiText.text = "当前步骤完成度：" + Mathf.Round(cos * 10000) / 100 + "%";
             if (cos > 0.9){
-                //body_nodes[0].GetComponent<MeshRenderer>().material = keyMat;
                 Alert.removeAlertMsg(keyAlertId);
                 NextKeyPos();
             }else{
-                //body_nodes[0].GetComponent<MeshRenderer>().material = defMat;
                 for (int i = 0; i < keyPoseNameList.Length; i++){
-                    cos = GetSimilarity_body(keyPose);
+                    cos = GetSimilarity(keyPoseList[i]);
                     if (cos > 0.9){
-                        int ret = Alert.updateAlertMsg(keyAlertId, "遗漏重要步骤：" + keyPoseNameList[currKeyPoseIndex], 35);
+                        int ret = Alert.updateAlertMsg(keyAlertId, "遗漏重要步骤：\n" + keyPoseNameList[currKeyPoseIndex], 35);
                         if (ret != keyAlertId){
                             keyAlertId = ret;
                         }
@@ -319,13 +318,30 @@ public class Skeleton : MonoBehaviour
                 }
             }
         }
-        simText.text = "当前动作相似度：" + sim;
+        if (keyPoseList[currKeyPoseIndex].type == "motion"){
+            simText.text = "当前动作映射值：" + sim + "/" + keyPoseList[currKeyPoseIndex].motion_value;
+        }else {
+            simText.text = "当前动作映射值：" + sim;
+        }
 
         Camera.main.transform.localPosition = body_nodePos[3] - camera_relative_pos;
         //new Vector3(body_nodePos[3].x - 1.8f, body_nodePos[3].y + 1.2f, body_nodePos[3].z - 0.8f);
         
         Camera.main.transform.localRotation = Quaternion.LookRotation(camera_relative_pos, new Vector3(0, 1, 0));
         timeText.text = string.Format("{0:T}", DateTime.Now);
+    }
+
+    private float GetSimilarity(KeyPack_NodeInfo kn){
+        if (kn.type == "key"){
+            for (int i = 0; i < 19 ;i ++){
+                keyPose[i].x = kn.nodes[i].x / 1000;
+                keyPose[i].y = kn.nodes[i].y / 1000;
+                keyPose[i].z = kn.nodes[i].z / 1000;
+            }
+            return GetSimilarity_body(keyPose);
+        }else{
+            return GetSimilarity_motion(kn.motion_value);
+        }
     }
 
     private float GetSimilarity_body(Vector3[] kp){
@@ -345,6 +361,10 @@ public class Skeleton : MonoBehaviour
         float cos = r / Mathf.Sqrt(m1) / Mathf.Sqrt(m2);
         return cos * cos;
     }
+    private float GetSimilarity_motion(float value){
+        float cos = value * sim / ((value * value) + (sim * sim));
+        return cos;
+    }
 
     private float GetSimilarity_hand(Vector3[] kp){
         float r = 0;
@@ -363,15 +383,12 @@ public class Skeleton : MonoBehaviour
         return cos * cos;
     }
 
+
+
     private void NextKeyPos(){
         currKeyPoseIndex ++;
         if (currKeyPoseIndex < keyPoseList.Length){
             KeyPack_NodeInfo node_info = keyPoseList[currKeyPoseIndex];
-            for (int i = 0; i < 19 ;i ++){
-                keyPose[i].x = node_info.nodes[i].x / 1000;
-                keyPose[i].y = node_info.nodes[i].y / 1000;
-                keyPose[i].z = node_info.nodes[i].z / 1000;
-            }
             foreach (Transform child in currentObject.transform)
             {
                 if(child.gameObject.name.Contains("dangerCylinder")){
@@ -402,6 +419,7 @@ public class Skeleton : MonoBehaviour
             actText.text = "当前应做动作：" + node_info.motion_name;
         }else {
             nextText.text = "无关键步骤信息";
+            actText.text = "无应做动作";
             foreach (Transform child in currentObject.transform)
             {
                 if(child.gameObject.name.Contains("dangerCylinder")){
@@ -544,14 +562,14 @@ public class Skeleton : MonoBehaviour
         driller.SetActive(value == 1);
         if (value == 0){
             currentObject = lathe;
-            keyPoseNameList = new string[4]{"lathe/tighten_knife", "lathe/tighten", "lathe/start", "lathe/stop"};
-            keyPoseList = new KeyPack_NodeInfo[4];
+            keyPoseNameList = new string[8]{"lathe/wrench", "lathe/tighten", "lathe/tighten_knife", "lathe/check", "lathe/start", "lathe/autocut", "lathe/check", "lathe/stop"};
+            keyPoseList = new KeyPack_NodeInfo[8];
             LoadKeyPos();
             currKeyPoseIndex = -1;
             NextKeyPos();
         }else if (value == 1){
             currentObject = driller;
-            keyPoseNameList = new string[5]{"driller/tighten", "driller/start", "driller/drill", "driller/stop", "driller/release"};
+            keyPoseNameList = new string[5]{"driller/wrench", "driller/start", "driller/drill", "driller/stop", "driller/release"};
             keyPoseList = new KeyPack_NodeInfo[5];
             LoadKeyPos();
             currKeyPoseIndex = -1;

@@ -1,8 +1,6 @@
 {
+    "type": "key",
     "pose": "开机",
-    "motion": "wrench",
-    "motion_name": "拧",
-    "motion_value": 0.0,
     "danger": false,
     "nodes": [
         {

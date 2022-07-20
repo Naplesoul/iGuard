@@ -17,7 +17,9 @@ public class DangerCol : MonoBehaviour
     public static Socket socket;
 
     public string level;
+    public string danger_name;
     private int alert_id;
+
 
     // Start is called before the first frame update
     void Start()
@@ -43,7 +45,7 @@ public class DangerCol : MonoBehaviour
     private void OnCollisionEnter(Collision other) {
         Debug.Log("Danger!");
         if (other.gameObject.name.Contains("node")){
-            alert_id = Alert.addAlertMsg("请离开危险区：" + this.name, (level[0] - '@') * 10);
+            alert_id = Alert.addAlertMsg("请离开危险区：\n" + danger_name, (level[0] - '@') * 10);
         }
     }
 
