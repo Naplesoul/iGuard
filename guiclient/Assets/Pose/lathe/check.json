@@ -1,0 +1,8 @@
+{
+    "type": "motion",
+    "pose": "对刀",
+    "danger": true,
+    "motion": "turn",
+    "motion_name": "转轮对刀",
+    "motion_value": 0.0
+}

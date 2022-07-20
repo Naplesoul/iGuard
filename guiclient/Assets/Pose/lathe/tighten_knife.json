@@ -1,9 +1,7 @@
 {
+    "type": "key",
     "pose": "夹紧刀具",
     "danger": false,
-    "motion": "stand",
-    "motion_name": "无",
-    "motion_value": 15.6,
     "nodes": [
         {
             "score": 75,

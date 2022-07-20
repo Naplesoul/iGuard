@@ -1,9 +1,7 @@
 {
-    "pose": "开机",
+    "type": "key",
+    "pose": "开车",
     "danger": false,
-    "motion": "wrench",
-    "motion_name": "拧",
-    "motion_value": 15.6,
     "nodes": [
         {
             "score": 75,
