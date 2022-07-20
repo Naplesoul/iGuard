@@ -33,6 +33,7 @@ def get_skeleton(recv: socket.socket) -> list:
 if __name__ == "__main__":
     recv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     recv.bind(("0.0.0.0", config.listen_port))
+    print(f"infer server listening on port {config.listen_port}")
     send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     epoch, model, optimizer = utils.load_model(config.use_cuda)
