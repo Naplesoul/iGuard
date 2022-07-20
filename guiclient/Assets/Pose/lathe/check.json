@@ -4,5 +4,5 @@
     "danger": true,
     "motion": "turn",
     "motion_name": "转轮对刀",
-    "motion_value": 0.0
+    "motion_value": 11.0
 }

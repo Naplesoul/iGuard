@@ -44,7 +44,7 @@ public class DangerCol : MonoBehaviour
 
     private void OnCollisionEnter(Collision other) {
         //Debug.Log("Danger!");
-        if (other.gameObject.name.Contains("node")){
+        if (other.gameObject.name.Contains("node") && alert_id == -1){
             alert_id = Alert.updateAlertMsg(alert_id, "请离开危险区：\n" + danger_name, (level[0] - '@') * 10);
         }
     }

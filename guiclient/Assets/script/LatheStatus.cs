@@ -30,16 +30,15 @@ public class LatheStatus : MonoBehaviour
     {
         //Debug.Log(carriage_x);
         Vector3 pos = lathe_big_carriage.transform.localPosition;
-        pos.x = carriage_x;
+        pos.x = carriage_x * 0.54f;
         lathe_big_carriage.transform.localPosition = pos;
 
         Vector3 pos2 = lathe_mid_carriage.transform.localPosition;
-        pos2.y = - carriage_z / 8.3731f;
+        pos2.y = - carriage_z * 0.19f / 8.3731f;
         lathe_mid_carriage.transform.localPosition = pos2;
 
-
         Vector3 rot = lathe_big_wheel.transform.localRotation.eulerAngles;
-        rot.y = pos.x * 5000;
+        rot.y = - pos.x * 5000;
         lathe_big_wheel.transform.localRotation = Quaternion.Euler(rot);
 
         rot = lathe_mid_wheel.transform.localRotation.eulerAngles;

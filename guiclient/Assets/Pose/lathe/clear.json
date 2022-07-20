@@ -1,0 +1,8 @@
+{
+    "type": "motion",
+    "pose": "清理工件",
+    "danger": true,
+    "motion": "turn",
+    "motion_name": "清理工件",
+    "motion_value": 12.5
+}
