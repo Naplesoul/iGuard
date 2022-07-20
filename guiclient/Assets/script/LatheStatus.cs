@@ -48,7 +48,7 @@ public class LatheStatus : MonoBehaviour
 
         if (running){
             lathe_axle.transform.Rotate(new Vector3(0, 0, -2.5f));
-            if (pos.x > 0.65f){
+            if (pos.x > 0.54f){
                 alert_id = Alert.updateAlertMsg(alert_id, "即将撞车，请立即停止进刀", 100);
             }else if (alert_id >= 0){
                 Alert.removeAlertMsg(alert_id);

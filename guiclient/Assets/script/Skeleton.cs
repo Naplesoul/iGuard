@@ -296,26 +296,27 @@ public class Skeleton : MonoBehaviour
         }
 
         float cos = GetSimilarity_hand(okPose);
-        if (cos > 0.9 && Time.time - last_ok_time > 5){
+        if (cos > 0.92 && Time.time - last_ok_time > 5){
             last_ok_time = Time.time;
             NextKeyPos();
         }else{
             cos = GetSimilarity(keyPoseList[currKeyPoseIndex]);
             simiText.text = "当前步骤完成度：" + Mathf.Round(cos * 10000) / 100 + "%";
-            if (cos > 0.9){
+            if (cos > 0.95){
                 Alert.removeAlertMsg(keyAlertId);
                 NextKeyPos();
-            }else{
-                for (int i = 0; i < keyPoseNameList.Length; i++){
+            }else if (currKeyPoseIndex < keyPoseList.Length){
+                //for (int i = 0; i < keyPoseNameList.Length; i++){
+                    int i = currKeyPoseIndex + 1;
                     cos = GetSimilarity(keyPoseList[i]);
-                    if (cos > 0.9){
+                    if (cos > 0.95){
                         int ret = Alert.updateAlertMsg(keyAlertId, "遗漏重要步骤：\n" + keyPoseNameList[currKeyPoseIndex], 35);
                         if (ret != keyAlertId){
                             keyAlertId = ret;
                         }
-                        break;
+                        //break;
                     }
-                }
+                //}
             }
         }
         if (keyPoseList[currKeyPoseIndex].type == "motion"){
@@ -332,16 +333,20 @@ public class Skeleton : MonoBehaviour
     }
 
     private float GetSimilarity(KeyPack_NodeInfo kn){
+        //Debug.Log("sim: " + kn.type + kn.pose);
+        float s;
         if (kn.type == "key"){
             for (int i = 0; i < 19 ;i ++){
                 keyPose[i].x = kn.nodes[i].x / 1000;
                 keyPose[i].y = kn.nodes[i].y / 1000;
                 keyPose[i].z = kn.nodes[i].z / 1000;
             }
-            return GetSimilarity_body(keyPose);
+            s = GetSimilarity_body(keyPose);
         }else{
-            return GetSimilarity_motion(kn.motion_value);
+            s = GetSimilarity_motion(kn.motion_value);
         }
+        //Debug.Log("sim: " + s);
+        return s;
     }
 
     private float GetSimilarity_body(Vector3[] kp){
@@ -420,19 +425,19 @@ public class Skeleton : MonoBehaviour
         }else {
             nextText.text = "无关键步骤信息";
             actText.text = "无应做动作";
-            foreach (Transform child in currentObject.transform)
-            {
-                if(child.gameObject.name.Contains("dangerCylinder")){
-                    CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
-                    collider.enabled = false;
-                    child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                }
-                if(child.gameObject.name.Contains("dangerCube")){
-                    BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
-                    collider.enabled = false;
-                    child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                }
-            }
+            // foreach (Transform child in currentObject.transform)
+            // {
+            //     if(child.gameObject.name.Contains("dangerCylinder")){
+            //         CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+            //         collider.enabled = false;
+            //         child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+            //     }
+            //     if(child.gameObject.name.Contains("dangerCube")){
+            //         BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+            //         collider.enabled = false;
+            //         child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+            //     }
+            // }
         }
     }
 
@@ -526,7 +531,34 @@ public class Skeleton : MonoBehaviour
 
             LatheStatus.carriage_x = ni.carriage_x / 1000;
             LatheStatus.carriage_z = ni.carriage_z / 1000;
-            LatheStatus.running = ni.running;
+            if (LatheStatus.running != ni.running){
+                LatheStatus.running = ni.running;
+
+                // foreach (Transform child in currentObject.transform)
+                // {
+                //     if(child.gameObject.name.Contains("dangerCylinder")){
+                //         CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+                //         if (ni.running){
+                //             collider.enabled = true;
+                //             child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+                //         }else{
+                //             collider.enabled = false;
+                //             child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                //         }
+                //     }
+                //     if(child.gameObject.name.Contains("dangerCube")){
+                //         BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+                //         if (ni.running){
+                //             collider.enabled = true;
+                //             child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+                //         }else{
+                //             collider.enabled = false;
+                //             child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                //         }
+                //     }
+                // }
+            }
+
             // if (last_frame_id != -1){
             //     for (int i = 0; i < 19 ;i ++){
             //         prePose[i].x = (body_nodePos[i].x - body_lastNodePos[i].x) < 0.1 ? (2 * body_nodePos[i].x - body_lastNodePos[i].x) : body_lastNodePos[i].x;
@@ -551,7 +583,7 @@ public class Skeleton : MonoBehaviour
             Debug.Log(node_info_str);
 
             WebPack_NodeInfo node_info = JsonUtility.FromJson<WebPack_NodeInfo>(node_info_str);
-            Debug.Log("recv: " + node_info.carriage_x);
+            //Debug.Log("recv: " + node_info.carriage_x);
             //Debug.Log(node_info.nodes);
             SetNodePos(node_info);
         }
@@ -562,8 +594,8 @@ public class Skeleton : MonoBehaviour
         driller.SetActive(value == 1);
         if (value == 0){
             currentObject = lathe;
-            keyPoseNameList = new string[8]{"lathe/wrench", "lathe/tighten", "lathe/tighten_knife", "lathe/check", "lathe/start", "lathe/autocut", "lathe/check", "lathe/stop"};
-            keyPoseList = new KeyPack_NodeInfo[8];
+            keyPoseNameList = new string[7]{"lathe/tighten_knife", "lathe/tighten", "lathe/check", "lathe/start", "lathe/autocut", "lathe/check", "lathe/stop"};
+            keyPoseList = new KeyPack_NodeInfo[7];
             LoadKeyPos();
             currKeyPoseIndex = -1;
             NextKeyPos();
@@ -609,7 +641,7 @@ public class Skeleton : MonoBehaviour
         if (m == 0){
             camera_relative_pos = new Vector3(1.8f, -1.2f, 0.8f);
         }else if (m == 1){
-            camera_relative_pos = new Vector3(0f, -3.5f, -0.2f);
+            camera_relative_pos = new Vector3(0f, -1.3f, 1.4f);
         }else {
             camera_relative_pos = new Vector3(0f, -0.6f, -1.8f);
         }
