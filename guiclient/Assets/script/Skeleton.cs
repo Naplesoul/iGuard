@@ -105,6 +105,7 @@ public class Skeleton : MonoBehaviour
     public GameObject lathe;
     public GameObject driller;
     private GameObject currentObject;
+    private bool machine_running = false;
 
     // Start is called before the first frame update
     void Start()
@@ -325,10 +326,33 @@ public class Skeleton : MonoBehaviour
             simText.text = "当前动作映射值：" + sim;
         }
 
-        Camera.main.transform.localPosition = body_nodePos[3] - camera_relative_pos;
-        //new Vector3(body_nodePos[3].x - 1.8f, body_nodePos[3].y + 1.2f, body_nodePos[3].z - 0.8f);
-        
-        Camera.main.transform.localRotation = Quaternion.LookRotation(camera_relative_pos, new Vector3(0, 1, 0));
+        if (LatheStatus.running != machine_running){
+            LatheStatus.running = machine_running;
+            foreach (Transform child in currentObject.transform)
+            {
+                if(child.gameObject.name.Contains("dangerCylinder")){
+                    CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+                    if (machine_running){
+                        collider.enabled = true;
+                        child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+                    }else{
+                        collider.enabled = false;
+                        child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                    }
+                }
+                if(child.gameObject.name.Contains("dangerCube")){
+                    BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+                    if (machine_running){
+                        collider.enabled = true;
+                        child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+                    }else{
+                        collider.enabled = false;
+                        child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                    }
+                }
+            }
+        }
+
         timeText.text = string.Format("{0:T}", DateTime.Now);
     }
 
@@ -394,32 +418,32 @@ public class Skeleton : MonoBehaviour
         currKeyPoseIndex ++;
         if (currKeyPoseIndex < keyPoseList.Length){
             KeyPack_NodeInfo node_info = keyPoseList[currKeyPoseIndex];
-            foreach (Transform child in currentObject.transform)
-            {
-                if(child.gameObject.name.Contains("dangerCylinder")){
-                    CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
-                    if (node_info.danger){
-                        collider.enabled = true;
-                        child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
-                    }else{
-                        collider.enabled = false;
-                        child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                    }
-                }
-                if(child.gameObject.name.Contains("dangerCube")){
-                    BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
-                    if (node_info.danger){
-                        collider.enabled = true;
-                        child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
-                    }else{
-                        collider.enabled = false;
-                        child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                    }
-                }
-            }
-            if (!node_info.danger){
-                DangerCol.noDanger();
-            }
+            // foreach (Transform child in currentObject.transform)
+            // {
+            //     if(child.gameObject.name.Contains("dangerCylinder")){
+            //         CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+            //         if (node_info.danger){
+            //             collider.enabled = true;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+            //         }else{
+            //             collider.enabled = false;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+            //         }
+            //     }
+            //     if(child.gameObject.name.Contains("dangerCube")){
+            //         BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+            //         if (node_info.danger){
+            //             collider.enabled = true;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+            //         }else{
+            //             collider.enabled = false;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+            //         }
+            //     }
+            // }
+            // if (!node_info.danger){
+            //     DangerCol.noDanger();
+            // }
             nextText.text = "请执行关键步骤("+ (currKeyPoseIndex + 1) +"/"+ keyPoseList.Length +")：" + node_info.pose;
             actText.text = "当前应做动作：" + node_info.motion_name;
         }else {
@@ -529,35 +553,9 @@ public class Skeleton : MonoBehaviour
                 }
             }
 
-            LatheStatus.carriage_x = ni.carriage_x / 1000;
-            LatheStatus.carriage_z = ni.carriage_z / 1000;
-            if (LatheStatus.running != ni.running){
-                LatheStatus.running = ni.running;
-
-                // foreach (Transform child in currentObject.transform)
-                // {
-                //     if(child.gameObject.name.Contains("dangerCylinder")){
-                //         CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
-                //         if (ni.running){
-                //             collider.enabled = true;
-                //             child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
-                //         }else{
-                //             collider.enabled = false;
-                //             child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                //         }
-                //     }
-                //     if(child.gameObject.name.Contains("dangerCube")){
-                //         BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
-                //         if (ni.running){
-                //             collider.enabled = true;
-                //             child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
-                //         }else{
-                //             collider.enabled = false;
-                //             child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                //         }
-                //     }
-                // }
-            }
+            LatheStatus.carriage_x = ni.carriage_x / 100;
+            LatheStatus.carriage_z = ni.carriage_z / 100;
+            machine_running = ni.running;
 
             // if (last_frame_id != -1){
             //     for (int i = 0; i < 19 ;i ++){
@@ -640,10 +638,14 @@ public class Skeleton : MonoBehaviour
     public void CameraChanged(int m){
         if (m == 0){
             camera_relative_pos = new Vector3(1.8f, -1.2f, 0.8f);
-        }else if (m == 1){
+        }else if (m == 3){
             camera_relative_pos = new Vector3(0f, -1.3f, 1.4f);
-        }else {
+        }else if (m == 2){
             camera_relative_pos = new Vector3(0f, -0.6f, -1.8f);
+        }else {
+            camera_relative_pos = new Vector3(0f, -2.6f, -0.2f);
         }
+        Camera.main.transform.localPosition = body_nodePos[3] - camera_relative_pos;
+        Camera.main.transform.localRotation = Quaternion.LookRotation(camera_relative_pos, new Vector3(0, 1, 0));
     }
 }
