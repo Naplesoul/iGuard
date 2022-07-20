@@ -604,4 +604,14 @@ public class Skeleton : MonoBehaviour
             NextKeyPos();
         }
     }
+
+    public void CameraChanged(int m){
+        if (m == 0){
+            camera_relative_pos = new Vector3(1.8f, -1.2f, 0.8f);
+        }else if (m == 1){
+            camera_relative_pos = new Vector3(0f, -3.5f, -0.2f);
+        }else {
+            camera_relative_pos = new Vector3(0f, -0.6f, -1.8f);
+        }
+    }
 }
