@@ -9,11 +9,14 @@
 #include <mutex>
 #include <eigen3/Eigen/LU>
 #include <eigen3/Eigen/Core>
+#include <opencv2/opencv.hpp>
 #include <jsoncpp/json/json.h>
 #include <nuitrack/Nuitrack.h>
 
 #include "utils.h"
 #include "client.h"
+
+#define ENABLE_COLOR 0
 
 using namespace tdv::nuitrack;
 
@@ -56,6 +59,29 @@ uint64_t waitUntilNextFrame()
         std::this_thread::sleep_for(sleepTime);
     }
     return newFrameId;
+}
+
+void onFrameUpdate(RGBFrame::Ptr frame)
+{
+    const tdv::nuitrack::Color3 *colorPtr = frame->getData();
+
+    int w = frame->getCols();
+    int h = frame->getRows();
+
+    cv::Mat bgrFrame(h, w, CV_8UC3);
+
+    for (int i = 0; i < h; ++i) {
+        for (int j = 0; j < w; ++j) {
+            const tdv::nuitrack::Color3 *color = colorPtr + i * w + j;
+            cv::Vec3b pixel;
+            pixel[0] = color->blue;
+            pixel[1] = color->green;
+            pixel[2] = color->red;
+            bgrFrame.at<cv::Vec3b>(i, j) = pixel;
+        }
+    }
+    cv::resize(bgrFrame, bgrFrame, cv::Size(480, 270));
+    cv::imwrite("frame.png", bgrFrame);
 }
 
 // Callback for the hand data update event
@@ -112,6 +138,9 @@ int main(int argc, char* argv[])
     int cameraId = config["camera_id"].asInt();
 
     client = new DetectClient(serverIp, serverPort, cameraId, updateOffset, M_inv);
+#if ENABLE_COLOR
+    ColorSensor::Ptr colorSensor = nullptr;
+#endif
     SkeletonTracker::Ptr skeletonTracker = nullptr;
 
     // start Nuitrack
@@ -138,6 +167,10 @@ int main(int argc, char* argv[])
             delete client;
             exit(-1);
         }
+#if ENABLE_COLOR
+        colorSensor = ColorSensor::create();
+        colorSensor->connectOnNewFrame(onFrameUpdate);
+#endif
         // Create SkeletonTracker module, other required modules will be
         // created automatically
         skeletonTracker = SkeletonTracker::create();
@@ -162,6 +195,9 @@ int main(int argc, char* argv[])
             
             // Wait for new skeleton tracking data
             Nuitrack::waitUpdate(skeletonTracker);
+#if ENABLE_COLOR
+            Nuitrack::waitUpdate(colorSensor);
+#endif
 
             auto end = std::chrono::system_clock::now();
             std::chrono::nanoseconds process_time(end - begin);
