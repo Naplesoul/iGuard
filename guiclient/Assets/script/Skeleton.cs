@@ -110,6 +110,8 @@ public class Skeleton : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Screen.SetResolution(1920, 1080, false, 60);
+
         body_nodes = new GameObject[19];
         lh_nodes = new GameObject[21];
         rh_nodes = new GameObject[21];
