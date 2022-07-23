@@ -1,7 +1,6 @@
 {
     "type": "motion",
     "pose": "安装工件",
-    "danger": false,
     "motion": "wrench",
     "motion_name": "安装工件",
     "motion_value": 13.8
