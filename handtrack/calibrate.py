@@ -23,6 +23,7 @@ if __name__ == "__main__":
         bgr_image = camera.get_color_image()
         lab_img = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2LAB)
         rects = machine.find(lab_img)
+        cv2.imwrite("lower_left.png", bgr_image)
         if len(rects) < 2:
             print("Cannot find enough (2) contours.")
             continue
@@ -43,6 +44,7 @@ if __name__ == "__main__":
         bgr_image = camera.get_color_image()
         lab_img = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2LAB)
         rects = machine.find(lab_img)
+        cv2.imwrite("upper_left.png", bgr_image)
         if len(rects) < 2:
             print("Cannot find enough (2) contours.")
             continue
@@ -56,6 +58,7 @@ if __name__ == "__main__":
         bgr_image = camera.get_color_image()
         lab_img = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2LAB)
         rects = machine.find(lab_img)
+        cv2.imwrite("upper_right.png", bgr_image)
         if len(rects) < 2:
             print("Cannot find enough (2) contours.")
             continue
@@ -69,10 +72,11 @@ if __name__ == "__main__":
         bgr_image = camera.get_color_image()
         lab_img = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2LAB)
         rects = machine.find(lab_img)
-        if len(rects) < 2:
-            print("Cannot find enough (2) contours.")
+        cv2.imwrite("lower_right.png", bgr_image)
+        if len(rects) != 1:
+            print("Contours count (1) unsatisfied.")
             continue
-        config["carriage_lower_right"] = rects[-2]
+        config["carriage_lower_right"] = rects[0]
         break
 
     config_file = open(config_filename, "w+")

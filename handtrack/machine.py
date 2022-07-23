@@ -112,8 +112,8 @@ def detect(bgr_image):
     
     x, z = convert(rects[0])
     
-    # if abs(x - carriage_x) > 10 or abs(z - carriage_z) > 20:
-    #     return { "carriage_x": carriage_x, "carriage_z": carriage_z, "running": running }
+    if abs(x - carriage_x) > 30 or abs(z - carriage_z) > 30:
+        return { "carriage_x": carriage_x, "carriage_z": carriage_z, "running": running }
     
     carriage_x = x
     carriage_z = z
