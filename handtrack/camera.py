@@ -2,6 +2,7 @@ import sys
 import time
 import numpy as np
 import pyrealsense2 as rs
+# import cv2
 
 stream_res_x = 640
 stream_res_y = 480
@@ -18,6 +19,7 @@ def init(serial: str):
     config = rs.config()
     config.enable_stream(rs.stream.depth, stream_res_x, stream_res_y, rs.format.z16, stream_fps)
     config.enable_stream(rs.stream.color, stream_res_x, stream_res_y, rs.format.bgr8, stream_fps)
+    # config.enable_stream(rs.stream.infrared, 1, stream_res_x, stream_res_y, rs.format.y8, stream_fps)
     profile = pipeline.start(config)
 
     align_to = rs.stream.color
@@ -42,6 +44,8 @@ def get_color_image():
         frames = pipeline.wait_for_frames()
         aligned_frames = align.process(frames)
         color_frame = aligned_frames.get_color_frame()
+        # ir_frame = aligned_frames.get_infrared_frame(1)
+        # cv2.imwrite("ir.png", np.asanyarray(ir_frame.get_data()))
         if color_frame:
             return np.asanyarray(color_frame.get_data())
         print("NO Color Frame!")
