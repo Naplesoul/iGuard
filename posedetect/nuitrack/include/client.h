@@ -13,13 +13,22 @@
 #include <eigen3/Eigen/Core>
 #include <jsoncpp/json/json.h>
 
-class DetectClient
+class UDPClient
 {
-private:
+protected:
     int sockfd;
     int addrLen;
     struct sockaddr_in serverAddr;
 
+public:
+    UDPClient(const std::string &addr, uint16_t port);
+    ~UDPClient();
+    void sendToServer(const void *buf, int len);
+};
+
+class SkeletonClient: public UDPClient
+{
+private:
     int cameraId;
     Eigen::Matrix4f M_inv;
     Json::Reader reader;
@@ -28,13 +37,12 @@ private:
     void (*updateOffset)(int64_t);
     std::thread feedbackThread;
     void pollFeedback();
-    void sendToServer(const char* buf, int len);
 
 public:
     void sendEmpty(uint64_t frameId);
-    void send(uint64_t frameId, const tdv::nuitrack::Skeleton &newSkeleton);
+    void sendSkeleton(uint64_t frameId, const tdv::nuitrack::Skeleton &newSkeleton);
 
-    DetectClient(const std::string &addr, uint16_t port, int cameraId,
+    SkeletonClient(const std::string &addr, uint16_t port, int cameraId,
                  void updateOffset(int64_t), Eigen::Matrix4f M_inv);
-    ~DetectClient();
+    ~SkeletonClient();
 };

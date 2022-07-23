@@ -1,6 +1,8 @@
 {
     "server_ip": "192.168.0.104",
     "server_port": 50000,
+    "ppe_server_ip": "127.0.0.1",
+    "ppe_server_port": 50006,
     "fps": 10,
     "camera_id": 0,
     "device_name": "Kinect v2",
