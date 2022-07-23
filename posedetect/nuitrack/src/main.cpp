@@ -16,12 +16,12 @@
 #include "utils.h"
 #include "client.h"
 
-#define ENABLE_COLOR 0
-
 using namespace tdv::nuitrack;
 
 bool interrupted = false;
-DetectClient *client = nullptr;
+
+UDPClient *ppeDetectClient = nullptr;
+SkeletonClient *skeletonClient = nullptr;
 
 int fps = 10;
 uint64_t frameId = 0;
@@ -63,8 +63,9 @@ uint64_t waitUntilNextFrame()
 
 void onFrameUpdate(RGBFrame::Ptr frame)
 {
-    const tdv::nuitrack::Color3 *colorPtr = frame->getData();
+    if (frameId % 5 != 0) return;
 
+    const tdv::nuitrack::Color3 *colorPtr = frame->getData();
     int w = frame->getCols();
     int h = frame->getRows();
 
@@ -80,8 +81,15 @@ void onFrameUpdate(RGBFrame::Ptr frame)
             bgrFrame.at<cv::Vec3b>(i, j) = pixel;
         }
     }
-    cv::resize(bgrFrame, bgrFrame, cv::Size(480, 270));
-    cv::imwrite("frame.png", bgrFrame);
+    // cv::imwrite("frame.png", bgrFrame);
+    cv::resize(bgrFrame, bgrFrame, cv::Size(1280, 720));
+    int quality = 40; //压缩比率0～100
+    std::vector<uint8_t> imageData;
+    std::vector<int> compress_params;
+    compress_params.push_back(cv::IMWRITE_JPEG_QUALITY);
+    compress_params.push_back(quality);
+    cv::imencode(".jpg", bgrFrame, imageData, compress_params);
+    ppeDetectClient->sendToServer(imageData.data(), imageData.size());
 }
 
 // Callback for the hand data update event
@@ -90,7 +98,7 @@ void onSkeletonUpdate(SkeletonData::Ptr skeletonData)
     if (!skeletonData)
     {
         // No skeleton data
-        client->sendEmpty(frameId);
+        skeletonClient->sendEmpty(frameId);
         return;
     }
 
@@ -98,11 +106,11 @@ void onSkeletonUpdate(SkeletonData::Ptr skeletonData)
     if (userSkeletons.empty())
     {
         // No user skeletons
-        client->sendEmpty(frameId);
+        skeletonClient->sendEmpty(frameId);
         return;
     }
 
-    client->send(frameId, userSkeletons[0]);
+    skeletonClient->sendSkeleton(frameId, userSkeletons[0]);
 }
 
 int main(int argc, char* argv[])
@@ -137,10 +145,12 @@ int main(int argc, char* argv[])
     int serverPort = config["server_port"].asInt();
     int cameraId = config["camera_id"].asInt();
 
-    client = new DetectClient(serverIp, serverPort, cameraId, updateOffset, M_inv);
-#if ENABLE_COLOR
+    if (!config["ppe_server_ip"].empty()) {
+        ppeDetectClient = new UDPClient(config["ppe_server_ip"].asString(), config["ppe_server_port"].asInt());
+    }
+    skeletonClient = new SkeletonClient(serverIp, serverPort, cameraId, updateOffset, M_inv);
+
     ColorSensor::Ptr colorSensor = nullptr;
-#endif
     SkeletonTracker::Ptr skeletonTracker = nullptr;
 
     // start Nuitrack
@@ -164,13 +174,19 @@ int main(int argc, char* argv[])
         if (!foundDevice) {
             printf("Cannot found Camera Id = %d, Serial = %s, Name = %s\n", cameraId, serial.c_str(), deviceName.c_str());
             Nuitrack::release();
-            delete client;
+            delete skeletonClient;
+            if (ppeDetectClient) {
+                delete ppeDetectClient;
+                ppeDetectClient = nullptr;
+            }
             exit(-1);
         }
-#if ENABLE_COLOR
-        colorSensor = ColorSensor::create();
-        colorSensor->connectOnNewFrame(onFrameUpdate);
-#endif
+
+        if (ppeDetectClient) {
+            colorSensor = ColorSensor::create();
+            colorSensor->connectOnNewFrame(onFrameUpdate);
+        }
+
         // Create SkeletonTracker module, other required modules will be
         // created automatically
         skeletonTracker = SkeletonTracker::create();
@@ -195,9 +211,6 @@ int main(int argc, char* argv[])
             
             // Wait for new skeleton tracking data
             Nuitrack::waitUpdate(skeletonTracker);
-#if ENABLE_COLOR
-            Nuitrack::waitUpdate(colorSensor);
-#endif
 
             auto end = std::chrono::system_clock::now();
             std::chrono::nanoseconds process_time(end - begin);
@@ -207,7 +220,11 @@ int main(int argc, char* argv[])
     catch (LicenseNotAcquiredException& e)
     {
         std::cerr << "LicenseNotAcquired exception (ExceptionType: " << e.type() << ")" << std::endl;
-        delete client;
+        delete skeletonClient;
+        if (ppeDetectClient) {
+            delete ppeDetectClient;
+            ppeDetectClient = nullptr;
+        }
         Nuitrack::release();
         execv(argv[0], argv);
     }
@@ -217,7 +234,11 @@ int main(int argc, char* argv[])
         errorCode = EXIT_FAILURE;
     }
 
-    delete client;
+    delete skeletonClient;
+    if (ppeDetectClient) {
+        delete ppeDetectClient;
+        ppeDetectClient = nullptr;
+    }
     Nuitrack::release();
     exit(errorCode);
 }
