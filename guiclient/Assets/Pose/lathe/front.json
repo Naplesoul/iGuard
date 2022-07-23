@@ -1,0 +1,7 @@
+{
+    "type": "check",
+    "pose": "进刀",
+    "running": true,
+    "carriage_x_high": 0.99,
+    "carriage_x_low": 0.90
+}

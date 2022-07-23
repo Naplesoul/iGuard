@@ -20,7 +20,9 @@ public class KeyPack_Vector3{
 public class KeyPack_NodeInfo{
     public string type;
     public string pose;
-    public bool danger;
+    public bool running;
+    public float carriage_x_high;
+    public float carriage_x_low;
     public string motion;
     public string motion_name;
     public float motion_value;
@@ -110,7 +112,7 @@ public class Skeleton : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        Screen.SetResolution(1920, 1080, false, 60);
+        Screen.SetResolution(3840, 2160, false, 60);
 
         body_nodes = new GameObject[19];
         lh_nodes = new GameObject[21];
@@ -305,21 +307,37 @@ public class Skeleton : MonoBehaviour
         }else{
             cos = GetSimilarity(keyPoseList[currKeyPoseIndex]);
             simiText.text = "当前步骤完成度：" + Mathf.Round(cos * 10000) / 100 + "%";
-            if (cos > 0.95){
+            if (cos > 0.98 && keyPoseList[currKeyPoseIndex].type != "motion"){
                 Alert.removeAlertMsg(keyAlertId);
                 NextKeyPos();
-            }else if (currKeyPoseIndex < keyPoseList.Length){
+            }else if (cos < 0.92 && keyPoseList[currKeyPoseIndex].type == "motion"){
+                int ret = Alert.updateAlertMsg(keyAlertId, "动作不规范：\n" + keyPoseList[currKeyPoseIndex].pose, 25);
+                if (ret != keyAlertId){
+                    keyAlertId = ret;
+                }
+            }else if (cos >= 0.92 && keyPoseList[currKeyPoseIndex].type == "motion"){
+                Alert.removeAlertMsg(keyAlertId);
+            }
+            
+            if (currKeyPoseIndex < keyPoseList.Length && keyPoseList[currKeyPoseIndex].type != "motion"){
                 //for (int i = 0; i < keyPoseNameList.Length; i++){
                     int i = currKeyPoseIndex + 1;
                     cos = GetSimilarity(keyPoseList[i]);
-                    if (cos > 0.95){
-                        int ret = Alert.updateAlertMsg(keyAlertId, "遗漏重要步骤：\n" + keyPoseNameList[currKeyPoseIndex], 35);
+                    if (cos > 0.98 && keyPoseList[i].type != "motion"){
+                        int ret = Alert.updateAlertMsg(keyAlertId, "遗漏重要步骤：\n" + keyPoseList[currKeyPoseIndex].pose, 35);
                         if (ret != keyAlertId){
                             keyAlertId = ret;
                         }
                         //break;
                     }
                 //}
+            }else if (currKeyPoseIndex < keyPoseList.Length && keyPoseList[currKeyPoseIndex].type == "motion"){
+                int i = currKeyPoseIndex + 1;
+                cos = GetSimilarity(keyPoseList[i]);
+                if (cos > 0.98 && keyPoseList[i].type == "check"){
+                    Alert.removeAlertMsg(keyAlertId);
+                    NextKeyPos();
+                }
             }
         }
         if (keyPoseList[currKeyPoseIndex].type == "motion"){
@@ -368,8 +386,13 @@ public class Skeleton : MonoBehaviour
                 keyPose[i].z = kn.nodes[i].z / 1000;
             }
             s = GetSimilarity_body(keyPose);
-        }else{
+        }else if (kn.type == "motion"){
             s = GetSimilarity_motion(kn.motion_value);
+        }else{
+            if (LatheStatus.running == kn.running && LatheStatus.carriage_x <= kn.carriage_x_high && LatheStatus.carriage_x >= kn.carriage_x_low){
+                return 1f;
+            }
+            return 0f;
         }
         //Debug.Log("sim: " + s);
         return s;
@@ -393,8 +416,8 @@ public class Skeleton : MonoBehaviour
         return cos * cos;
     }
     private float GetSimilarity_motion(float value){
-        float cos = value * sim / ((value * value) + (sim * sim));
-        return cos;
+        float cos = 2 * value * sim / ((value * value) + (sim * sim));
+        return cos * cos * cos * cos;
     }
 
     private float GetSimilarity_hand(Vector3[] kp){
@@ -594,7 +617,7 @@ public class Skeleton : MonoBehaviour
         driller.SetActive(value == 1);
         if (value == 0){
             currentObject = lathe;
-            keyPoseNameList = new string[7]{"lathe/tighten_knife", "lathe/tighten", "lathe/check", "lathe/start", "lathe/autocut", "lathe/check", "lathe/stop"};
+            keyPoseNameList = new string[7]{"lathe/tighten_knife", "lathe/tighten", "lathe/start", "lathe/check", "lathe/front", "lathe/stop", "lathe/back"};
             keyPoseList = new KeyPack_NodeInfo[7];
             LoadKeyPos();
             currKeyPoseIndex = -1;

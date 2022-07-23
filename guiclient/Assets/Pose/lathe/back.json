@@ -1,0 +1,7 @@
+{
+    "type": "check",
+    "pose": "退刀",
+    "running": false,
+    "carriage_x_high": 0.10,
+    "carriage_x_low": -0.10
+}

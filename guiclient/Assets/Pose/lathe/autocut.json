@@ -1,7 +1,6 @@
 {
     "type": "key",
     "pose": "自动进刀",
-    "danger": true,
     "nodes": [
         {
             "x": 467,

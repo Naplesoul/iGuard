@@ -1,7 +1,6 @@
 {
     "type": "key",
     "pose": "夹紧工件",
-    "danger": false,
     "nodes": [
         {
             "score": 75,

@@ -1,7 +1,6 @@
 {
     "type": "key",
     "pose": "夹紧刀具",
-    "danger": false,
     "nodes": [
         {
             "score": 75,
