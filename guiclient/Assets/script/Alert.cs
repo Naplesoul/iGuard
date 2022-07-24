@@ -59,9 +59,9 @@ public class Alert : MonoBehaviour
     }
 
     public static int addAlertMsg(string msg, int emer){
-        needUpdate = true;
         Message m;
         lock(lock_obj){
+            needUpdate = true;
             m = new Message(msg, emer);
             msg_list.Add(m);
         }
@@ -69,8 +69,8 @@ public class Alert : MonoBehaviour
     }
 
     public static int updateAlertMsg(int id, string msg, int emer){
-        needUpdate = true;
         lock(lock_obj){
+            needUpdate = true;
             int len = msg_list.Count;
             for (int i = 0; i < len; i++){
                 if (((Message)msg_list[i]).id == id){

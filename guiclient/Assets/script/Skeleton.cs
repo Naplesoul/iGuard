@@ -81,6 +81,9 @@ public class Skeleton : MonoBehaviour
     private Vector3[] keyPose, okPose;
 
     private int keyAlertId = -1;
+    private int ppe_helmetAlertId = -1;
+    private int ppe_gloveAlertId = -1;
+    private int ppe_goggleAlertId = -1;
 
     private GameObject[] preNodes;
     private Vector3[] prePose;
@@ -108,6 +111,11 @@ public class Skeleton : MonoBehaviour
     public GameObject driller;
     private GameObject currentObject;
     private bool machine_running = false;
+
+    public GameObject helmet;
+    public GameObject goggle;
+    public GameObject glove_left;
+    public GameObject glove_right;
 
     // Start is called before the first frame update
     void Start()
@@ -233,8 +241,12 @@ public class Skeleton : MonoBehaviour
     void Update()
     {
         for (int i = 0; i < 19 ;i ++){
-            body_nodes[i].transform.localPosition = body_nodePos[i];
-            body_nodes[i].SetActive(body_nodeActive[i]);
+            if(!body_nodeActive[i]){
+                body_nodes[i].transform.localPosition = new Vector3(0, -1, 0);
+            }else{
+                body_nodes[i].transform.localPosition = body_nodePos[i];
+            }
+            //body_nodes[i].SetActive(body_nodeActive[i]);
             preNodes[i].transform.localPosition = prePose[i];
         }
         if (!body_nodeActive[8]){
@@ -244,12 +256,22 @@ public class Skeleton : MonoBehaviour
             body_nodes[11].transform.localScale = new Vector3(0.02f, 0.02f, 0.02f); 
         }
         for (int i = 0; i < 21 ;i ++){
-            lh_nodes[i].transform.localPosition = lh_nodePos[i];
-            lh_nodes[i].SetActive(lh_nodeActive[i]);
+            if(!lh_nodeActive[i]){
+                lh_nodes[i].transform.localPosition = new Vector3(0, -15, 0);
+            }else{
+                lh_nodes[i].transform.localPosition = lh_nodePos[i];
+            }
+            //lh_nodes[i].transform.localPosition = lh_nodePos[i];
+            //lh_nodes[i].SetActive(lh_nodeActive[i]);
         }
         for (int i = 0; i < 21 ;i ++){
-            rh_nodes[i].transform.localPosition = rh_nodePos[i];
-            rh_nodes[i].SetActive(rh_nodeActive[i]);
+            if(!rh_nodeActive[i]){
+                rh_nodes[i].transform.localPosition = new Vector3(0, -1, 0);
+            }else{
+                rh_nodes[i].transform.localPosition = rh_nodePos[i];
+            }
+            //rh_nodes[i].transform.localPosition = rh_nodePos[i];
+            //rh_nodes[i].SetActive(rh_nodeActive[i]);
         }
         for (int i = 0; i < 18 ;i ++){
             Vector3 a = body_nodePos[bnMap[i].x], b = body_nodePos[bnMap[i].y];
@@ -307,20 +329,42 @@ public class Skeleton : MonoBehaviour
         }else{
             cos = GetSimilarity(keyPoseList[currKeyPoseIndex]);
             simiText.text = "当前步骤完成度：" + Mathf.Round(cos * 10000) / 100 + "%";
-            if (cos > 0.98 && keyPoseList[currKeyPoseIndex].type != "motion"){
-                Alert.removeAlertMsg(keyAlertId);
-                NextKeyPos();
-            }else if (cos < 0.92 && keyPoseList[currKeyPoseIndex].type == "motion"){
-                int ret = Alert.updateAlertMsg(keyAlertId, "动作不规范：\n" + keyPoseList[currKeyPoseIndex].pose, 25);
-                if (ret != keyAlertId){
-                    keyAlertId = ret;
-                }
-            }else if (cos >= 0.92 && keyPoseList[currKeyPoseIndex].type == "motion"){
-                Alert.removeAlertMsg(keyAlertId);
-            }
+            // if (cos > 0.98 && keyPoseList[currKeyPoseIndex].type != "motion"){
+            //     Alert.removeAlertMsg(keyAlertId);
+            //     NextKeyPos();
+            // }else if (cos < 0.92 && keyPoseList[currKeyPoseIndex].type == "motion"){
+            //     int ret = Alert.updateAlertMsg(keyAlertId, "动作不规范：\n" + keyPoseList[currKeyPoseIndex].pose, 25);
+            //     if (ret != keyAlertId){
+            //         keyAlertId = ret;
+            //     }
+            // }else if (cos >= 0.92 && keyPoseList[currKeyPoseIndex].type == "motion"){
+            //     Alert.removeAlertMsg(keyAlertId);
+            // }
             
-            if (currKeyPoseIndex < keyPoseList.Length && keyPoseList[currKeyPoseIndex].type != "motion"){
-                //for (int i = 0; i < keyPoseNameList.Length; i++){
+            // if (currKeyPoseIndex < keyPoseList.Length && keyPoseList[currKeyPoseIndex].type != "motion"){
+            //         int i = currKeyPoseIndex + 1;
+            //         cos = GetSimilarity(keyPoseList[i]);
+            //         if (cos > 0.98 && keyPoseList[i].type != "motion"){
+            //             int ret = Alert.updateAlertMsg(keyAlertId, "遗漏重要步骤：\n" + keyPoseList[currKeyPoseIndex].pose, 35);
+            //             if (ret != keyAlertId){
+            //                 keyAlertId = ret;
+            //             }
+            //         }
+            // }else if (currKeyPoseIndex < keyPoseList.Length && keyPoseList[currKeyPoseIndex].type == "motion"){
+            //     int i = currKeyPoseIndex + 1;
+            //     cos = GetSimilarity(keyPoseList[i]);
+            //     if (cos > 0.98 && keyPoseList[i].type == "check"){
+            //         Alert.removeAlertMsg(keyAlertId);
+            //         NextKeyPos();
+            //     }
+            // }
+            if (keyPoseList[currKeyPoseIndex].type != "motion"){
+                simText.text = "当前动作映射值：" + sim;
+                if (cos > 0.98){
+                    Alert.removeAlertMsg(keyAlertId);
+                    NextKeyPos();
+                }
+                if (currKeyPoseIndex < keyPoseList.Length){
                     int i = currKeyPoseIndex + 1;
                     cos = GetSimilarity(keyPoseList[i]);
                     if (cos > 0.98 && keyPoseList[i].type != "motion"){
@@ -328,22 +372,29 @@ public class Skeleton : MonoBehaviour
                         if (ret != keyAlertId){
                             keyAlertId = ret;
                         }
-                        //break;
                     }
-                //}
-            }else if (currKeyPoseIndex < keyPoseList.Length && keyPoseList[currKeyPoseIndex].type == "motion"){
-                int i = currKeyPoseIndex + 1;
-                cos = GetSimilarity(keyPoseList[i]);
-                if (cos > 0.98 && keyPoseList[i].type == "check"){
+                }
+            }else{
+                simText.text = "当前动作映射值：" + sim + "/" + keyPoseList[currKeyPoseIndex].motion_value;
+                if (cos < 0.92){
+                    int ret = Alert.updateAlertMsg(keyAlertId, "动作不规范：\n" + keyPoseList[currKeyPoseIndex].pose, 25);
+                    if (ret != keyAlertId){
+                        keyAlertId = ret;
+                    }
+                }else{
                     Alert.removeAlertMsg(keyAlertId);
-                    NextKeyPos();
+                }
+                
+                if (currKeyPoseIndex < keyPoseList.Length){
+                    int i = currKeyPoseIndex + 1;
+                    cos = GetSimilarity(keyPoseList[i]);
+                    if (cos > 0.98 && keyPoseList[i].type == "check"){
+                        Alert.removeAlertMsg(keyAlertId);
+                        NextKeyPos();
+                    }
                 }
             }
-        }
-        if (keyPoseList[currKeyPoseIndex].type == "motion"){
-            simText.text = "当前动作映射值：" + sim + "/" + keyPoseList[currKeyPoseIndex].motion_value;
-        }else {
-            simText.text = "当前动作映射值：" + sim;
+
         }
 
         if (LatheStatus.running != machine_running){
@@ -351,25 +402,66 @@ public class Skeleton : MonoBehaviour
             foreach (Transform child in currentObject.transform)
             {
                 if(child.gameObject.name.Contains("dangerCylinder")){
-                    CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+                    //CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+                    Vector3 old_pos = child.localPosition; //
                     if (machine_running){
-                        collider.enabled = true;
+                        //collider.enabled = true;
                         child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+                        child.localPosition = old_pos + new Vector3(0, -15, 0);
                     }else{
-                        collider.enabled = false;
+                        //collider.enabled = false;
                         child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                        child.localPosition = old_pos + new Vector3(0, 15, 0);
                     }
                 }
                 if(child.gameObject.name.Contains("dangerCube")){
-                    BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+                    //BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+                    Vector3 old_pos = child.localPosition; //
                     if (machine_running){
-                        collider.enabled = true;
+                        //collider.enabled = true;
                         child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+                        child.localPosition = old_pos + new Vector3(0, -15, 0);
                     }else{
-                        collider.enabled = false;
+                        //collider.enabled = false;
                         child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                        child.localPosition = old_pos + new Vector3(0, 15, 0);
                     }
                 }
+            }
+        }
+
+        if (PPED.has_glove){
+            glove_left.transform.localPosition = body_nodePos[8];
+            glove_right.transform.localPosition = body_nodePos[12];
+            int ret = Alert.updateAlertMsg(ppe_gloveAlertId, "请立即摘下手套！", 110);
+            if (ret != ppe_gloveAlertId){
+                ppe_gloveAlertId = ret;
+            }
+        }else{
+            glove_left.transform.localPosition = new Vector3(1.65f, 1.24f, 0.7f);
+            glove_right.transform.localPosition = new Vector3(1.45f, 1.24f, 0.7f);
+            Alert.removeAlertMsg(ppe_gloveAlertId);
+        }
+
+        if (PPED.has_goggle){
+            goggle.transform.localPosition = body_nodePos[0];
+            Alert.removeAlertMsg(ppe_goggleAlertId);
+        }else if(body_nodeActive[0]){
+            goggle.transform.localPosition = new Vector3(1.6f, 1.25f, 0.5f);
+            int ret = Alert.updateAlertMsg(ppe_goggleAlertId, "是否佩戴护目镜？", 110);
+            if (ret != ppe_goggleAlertId){
+                ppe_goggleAlertId = ret;
+            }
+        }
+
+        if (PPED.has_helmet){
+            helmet.transform.localPosition = body_nodePos[0] + new Vector3(0, 0.15f, 0);
+            Alert.removeAlertMsg(ppe_helmetAlertId);
+        }else if(body_nodeActive[0]){
+            helmet.transform.localPosition = new Vector3(1.25f, 1.28f, 0.5f);
+            int ret = Alert.updateAlertMsg(ppe_helmetAlertId, "是否佩戴工作帽？", 110);
+            if (ret != ppe_helmetAlertId){
+                ppe_helmetAlertId = ret;
             }
         }
 
