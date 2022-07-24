@@ -30,7 +30,8 @@ UDPClient::~UDPClient()
 
 void UDPClient::sendToServer(const void *buf, int len)
 {
-    sendto(sockfd, buf, len, 0, (struct sockaddr*)&serverAddr, addrLen);
+    int i = sendto(sockfd, buf, len, 0, (struct sockaddr*)&serverAddr, addrLen);
+	printf("Sending %d bytes...\n", i);
 }
 
 SkeletonClient::SkeletonClient(const std::string &addr, uint16_t port, int _cameraId,
