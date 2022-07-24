@@ -98,11 +98,12 @@ if __name__ == "__main__":
             cv2.putText(img, class_names[class_id], (box[0] + 20, box[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
             print(class_names[class_id], confidence, box)
             
-        cv2.resize(img, (640, 360), img)
-        success, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 10])
-
         send.sendto(json.dumps({ "has_helmet": has_helmet, "has_goggle": has_goggle, "has_glove": has_goggle }).encode(), (config.server_ip, config.server_detect_port))
-        send.sendto(buf, (config.server_ip, config.server_image_port))
+        
+        cv2.resize(img, (640, 360), img)
+        success, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 20])
+        i = send.sendto(buf, (config.server_ip, config.server_image_port))
+        print(f"Sending image size = {i} bytes...")
 
         end_time = time.time()
         print(f"Total process time: {int((end_time - start_time) * 1000)} ms.\n\n")
