@@ -87,10 +87,16 @@ if __name__ == "__main__":
         for (class_id, confidence, box) in zip(filtered_ids, filered_confidences, filtered_boxes):
             id = int(class_id)
             if id == 0:
+                if confidence < 0.7:
+                    continue
                 has_glove = True
             elif id == 1:
+                if confidence < 0.5:
+                    continue
                 has_goggle = True
             elif id == 4:
+                if confidence < 0.75:
+                    continue
                 has_helmet = True
             color = colors[id]
             cv2.rectangle(img, box, color, 3)
@@ -98,7 +104,7 @@ if __name__ == "__main__":
             cv2.putText(img, class_names[class_id], (box[0] + 20, box[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
             print(class_names[class_id], confidence, box)
             
-        send.sendto(json.dumps({ "has_helmet": has_helmet, "has_goggle": has_goggle, "has_glove": has_goggle }).encode(), (config.server_ip, config.server_detect_port))
+        send.sendto(json.dumps({ "has_helmet": has_helmet, "has_goggle": has_goggle, "has_glove": has_glove }).encode(), (config.server_ip, config.server_detect_port))
         
         cv2.resize(img, (640, 360), img)
         success, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 20])
