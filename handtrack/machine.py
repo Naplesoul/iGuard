@@ -24,6 +24,7 @@ around_switch = [[0, 0]]
 carriage_x = 0
 carriage_z = 0
 running = False
+carriage_x_offset = 7
 
 def init(calibration):
     global switch, around_switch
@@ -108,13 +109,13 @@ def detect(bgr_image):
 
     rects = find(lab_img)
     if len(rects) < 1:
-        return { "carriage_x": carriage_x, "carriage_z": carriage_z, "running": running }
+        return { "carriage_x": carriage_x + carriage_x_offset, "carriage_z": carriage_z, "running": running }
     
     x, z = convert(rects[0])
     
     if abs(x - carriage_x) > 30 or abs(z - carriage_z) > 30:
-        return { "carriage_x": carriage_x, "carriage_z": carriage_z, "running": running }
+        return { "carriage_x": carriage_x + carriage_x_offset, "carriage_z": carriage_z, "running": running }
     
     carriage_x = x
     carriage_z = z
-    return { "carriage_x": x, "carriage_z": z, "running": running }
+    return { "carriage_x": x + carriage_x_offset, "carriage_z": z, "running": running }
