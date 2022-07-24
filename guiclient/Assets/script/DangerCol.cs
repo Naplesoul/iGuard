@@ -33,7 +33,34 @@ public class DangerCol : MonoBehaviour
         
     }
 
-    private void OnCollisionStay(Collision other) {
+    // private void OnCollisionStay(Collision other) {
+    //     if (other.gameObject.name.Contains("node")){
+    //         dangerText.text = "！！误触" + level + "级危险区：" + other.gameObject.name;
+    //         SendMsg("<" + level);
+    //     }else if (other.gameObject.name.Contains("pNode")){
+    //         dangerText.text = "可能进入危险区：" + other.gameObject.name;
+    //     }
+    // }
+
+    // private void OnCollisionEnter(Collision other) {
+    //     //Debug.Log("Danger!");
+    //     if (other.gameObject.name.Contains("node") && alert_id == -1){
+    //         alert_id = Alert.updateAlertMsg(alert_id, "请离开危险区：\n" + danger_name, (level[0] - '@') * 10);
+    //     }
+    // }
+
+    // private void OnCollisionExit(Collision other) {
+    //     if (dangerText.text.Contains(other.gameObject.name)){
+    //         dangerText.text = "当前无危险";
+    //     }
+    //     if (other.gameObject.name.Contains("node")){
+    //         Alert.removeAlertMsg(alert_id);
+    //         alert_id = -1;
+    //         SendMsg(">" + level);
+    //     }
+    // }
+
+    private void OnTriggerStay(Collider other) {
         if (other.gameObject.name.Contains("node")){
             dangerText.text = "！！误触" + level + "级危险区：" + other.gameObject.name;
             SendMsg("<" + level);
@@ -41,15 +68,12 @@ public class DangerCol : MonoBehaviour
             dangerText.text = "可能进入危险区：" + other.gameObject.name;
         }
     }
-
-    private void OnCollisionEnter(Collision other) {
-        //Debug.Log("Danger!");
+    private void OnTriggerEnter(Collider other) {
         if (other.gameObject.name.Contains("node") && alert_id == -1){
             alert_id = Alert.updateAlertMsg(alert_id, "请离开危险区：\n" + danger_name, (level[0] - '@') * 10);
         }
     }
-
-    private void OnCollisionExit(Collision other) {
+    private void OnTriggerExit(Collider other) {
         if (dangerText.text.Contains(other.gameObject.name)){
             dangerText.text = "当前无危险";
         }
