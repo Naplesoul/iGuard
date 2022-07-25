@@ -2,3 +2,4 @@
 *.mapping
 *.onnx
 *.xml
+*.pt
