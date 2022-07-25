@@ -51,7 +51,7 @@ public class PPED : MonoBehaviour
             recv = socket.ReceiveFrom(data, ref Remote);
             //Debug.Log(recv.ToString() + " bytes received from " + Remote.ToString() + ":");
             string node_info_str = Encoding.UTF8.GetString(data, 0, recv);
-            //Debug.Log(node_info_str);
+            Debug.Log(node_info_str);
             WebPack_PPE node_info = JsonUtility.FromJson<WebPack_PPE>(node_info_str);
 
             has_glove = node_info.has_glove;
