@@ -405,19 +405,6 @@ public class Skeleton : MonoBehaviour
                         }
                     }
                 }
-                if (PPED.has_glove){
-                    glove_left.transform.localPosition = body_nodePos[8];
-                    glove_right.transform.localPosition = body_nodePos[12];
-                    int ret = Alert.updateAlertMsg(ppe_gloveAlertId, "请立即摘下手套！", 110);
-                    if (ret != ppe_gloveAlertId){
-                        ppe_gloveAlertId = ret;
-                    }
-                }else{
-                    glove_left.transform.localPosition = new Vector3(1.65f, 1.24f, 0.7f);
-                    glove_right.transform.localPosition = new Vector3(1.45f, 1.24f, 0.7f);
-                    Alert.removeAlertMsg(ppe_gloveAlertId);
-                    ppe_gloveAlertId = -1;
-                }
             }else {                
                 simText.text = "当前动作映射值：" + sim;
                 if (cos > 0.98){
@@ -435,6 +422,20 @@ public class Skeleton : MonoBehaviour
                     }
                 }
             }
+            if (PPED.has_glove){
+                glove_left.transform.localPosition = body_nodePos[8];
+                glove_right.transform.localPosition = body_nodePos[12];
+                int ret = Alert.updateAlertMsg(ppe_gloveAlertId, "请立即摘下手套！", 110);
+                if (ret != ppe_gloveAlertId){
+                    ppe_gloveAlertId = ret;
+                }
+            }else{
+                glove_left.transform.localPosition = new Vector3(1.65f, 1.24f, 0.7f);
+                glove_right.transform.localPosition = new Vector3(1.45f, 1.24f, 0.7f);
+                Alert.removeAlertMsg(ppe_gloveAlertId);
+                ppe_gloveAlertId = -1;
+            }
+
             if (ppe_goggleAlertId == -1){
                 goggle.transform.localPosition = body_nodePos[0];
             }
