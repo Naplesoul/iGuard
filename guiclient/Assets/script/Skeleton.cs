@@ -742,6 +742,12 @@ public class Skeleton : MonoBehaviour
         for (int i = 0; i < 19 ;i ++){
             body_nodes[i].GetComponent<SphereCollider>().enabled = f;
         }
+        for (int i = 0; i < 21 ;i ++){
+            lh_nodes[i].GetComponent<SphereCollider>().enabled = f;
+        }
+        for (int i = 0; i < 19 ;i ++){
+            rh_nodes[i].GetComponent<SphereCollider>().enabled = f;
+        }
         if (!f){
             DangerCol.noDanger();
         }
@@ -757,12 +763,8 @@ public class Skeleton : MonoBehaviour
     }
 
     public void ActionModeChanged(bool f){
-        simiText.enabled = f;
-        nextText.enabled = f;
-        if (f){
-            currKeyPoseIndex = -1;
-            NextKeyPos();
-        }
+        actText.enabled = f;
+        simText.enabled = f;
     }
 
     public void CameraChanged(int m){
@@ -777,5 +779,19 @@ public class Skeleton : MonoBehaviour
         }
         Camera.main.transform.localPosition = body_nodePos[3] - camera_relative_pos;
         Camera.main.transform.localRotation = Quaternion.LookRotation(camera_relative_pos, new Vector3(0, 1, 0));
+    }
+
+    public void ResetAll(){
+        DangerModeChanged(false);
+        ActionModeChanged(false);
+        KeyModeChanged(false);
+        keyAlertId = -1;
+        ppe_helmetAlertId = ppe_gloveAlertId = ppe_goggleAlertId = -2;
+        machine_running = false;
+        DangerCol.noDanger();
+        Alert.removeAll();
+        DangerModeChanged(true);
+        ActionModeChanged(true);
+        KeyModeChanged(true);
     }
 }

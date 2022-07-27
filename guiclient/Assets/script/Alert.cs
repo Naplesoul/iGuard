@@ -96,4 +96,11 @@ public class Alert : MonoBehaviour
             }
         }
     }
+
+    public static void removeAll(){
+        needUpdate = true;
+        lock(lock_obj){
+            msg_list.Clear();
+        }
+    }
 }
