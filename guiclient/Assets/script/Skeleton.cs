@@ -110,7 +110,8 @@ public class Skeleton : MonoBehaviour
     public GameObject lathe;
     public GameObject driller;
     private GameObject currentObject;
-    private bool machine_running = false;
+    public GameObject[] dangerAreas;
+    private bool machine_running = true;
 
     public GameObject helmet;
     public GameObject goggle;
@@ -447,35 +448,49 @@ public class Skeleton : MonoBehaviour
 
         if (LatheStatus.running != machine_running){
             LatheStatus.running = machine_running;
-            foreach (Transform child in currentObject.transform)
+            foreach (GameObject obj in dangerAreas)
             {
-                if(child.gameObject.name.Contains("dangerCylinder")){
-                    //CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
-                    Vector3 old_pos = child.localPosition; //
-                    if (machine_running){
-                        //collider.enabled = true;
-                        child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
-                        child.localPosition = old_pos + new Vector3(0, -15, 0);
-                    }else{
-                        //collider.enabled = false;
-                        child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                        child.localPosition = old_pos + new Vector3(0, 15, 0);
-                    }
-                }
-                if(child.gameObject.name.Contains("dangerCube")){
-                    //BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
-                    Vector3 old_pos = child.localPosition; //
-                    if (machine_running){
-                        //collider.enabled = true;
-                        child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
-                        child.localPosition = old_pos + new Vector3(0, -15, 0);
-                    }else{
-                        //collider.enabled = false;
-                        child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                        child.localPosition = old_pos + new Vector3(0, 15, 0);
-                    }
+                if (obj.name.Contains("static")) continue;
+                Vector3 old_pos = obj.transform.localPosition;
+                if (machine_running){
+                    //collider.enabled = true;
+                    obj.GetComponent<MeshRenderer>().material = dangerMat;
+                    obj.transform.localPosition = old_pos + new Vector3(0, -15, 0);
+                }else{
+                    //collider.enabled = false;
+                    obj.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                    obj.transform.localPosition = old_pos + new Vector3(0, 15, 0);
                 }
             }
+            // foreach (Transform child in currentObject.transform)
+            // {
+            //     if(child.gameObject.name.Contains("dangerCylinder")){
+            //         //CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+            //         Vector3 old_pos = child.localPosition; //
+            //         if (machine_running){
+            //             //collider.enabled = true;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+            //             child.localPosition = old_pos + new Vector3(0, -15, 0);
+            //         }else{
+            //             //collider.enabled = false;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+            //             child.localPosition = old_pos + new Vector3(0, 15, 0);
+            //         }
+            //     }
+            //     if(child.gameObject.name.Contains("dangerCube")){
+            //         //BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+            //         Vector3 old_pos = child.localPosition; //
+            //         if (machine_running){
+            //             //collider.enabled = true;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+            //             child.localPosition = old_pos + new Vector3(0, -15, 0);
+            //         }else{
+            //             //collider.enabled = false;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+            //             child.localPosition = old_pos + new Vector3(0, 15, 0);
+            //         }
+            //     }
+            // }
         }
 
         timeText.text = string.Format("{0:T}", DateTime.Now);
@@ -545,6 +560,9 @@ public class Skeleton : MonoBehaviour
 
 
     private void NextKeyPos(){
+        if (currKeyPoseIndex >= 0){
+            OKMsg.addAlertMsg("已完成：" + keyPoseList[currKeyPoseIndex].pose);
+        }
         currKeyPoseIndex ++;
         if (currKeyPoseIndex < keyPoseList.Length){
             KeyPack_NodeInfo node_info = keyPoseList[currKeyPoseIndex];
