@@ -30,7 +30,7 @@ public class LatheStatus : MonoBehaviour
     {
         //Debug.Log(carriage_x);
         Vector3 pos = lathe_big_carriage.transform.localPosition;
-        pos.x = carriage_x * 0.393f;
+        pos.x = carriage_x * 0.5f;
         lathe_big_carriage.transform.localPosition = pos;
 
         Vector3 pos2 = lathe_mid_carriage.transform.localPosition;
@@ -47,7 +47,7 @@ public class LatheStatus : MonoBehaviour
 
         if (running){
             lathe_axle.transform.Rotate(new Vector3(0, 0, -7.5f));
-            if (pos.x > 0.393f){
+            if (pos.x > 0.5f){
                 alert_id = Alert.updateAlertMsg(alert_id, "即将撞车，请立即停止进刀", 100);
             }else if (alert_id >= 0){
                 Alert.removeAlertMsg(alert_id);

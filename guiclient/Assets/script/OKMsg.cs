@@ -37,13 +37,13 @@ public class OKMsg : MonoBehaviour
         if (Time.time - last_msg_time < 3){
             return;
         }
-        last_msg_time = Time.time;
         lock(lock_obj){
             if (msg_list.Count > 0){
                 okPanel.SetActive(true);
                 Message msg = (Message)msg_list[0];
                 okText.text = msg.text;
                 msg_list.RemoveAt(0);
+                last_msg_time = Time.time;
             }else{
                 okPanel.SetActive(false);
                 okText.text = "";
