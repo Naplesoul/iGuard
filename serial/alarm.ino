@@ -5,7 +5,7 @@ const int buzzerPin = 10;
 
 char c;
 char stat = ' ';
-int delay_time;
+int delay_time = 500;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -15,16 +15,10 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  //Serial.print("Hello, world!\n");
   c = Serial.read();
-  if(c == 'A' || c == 'B' || c == 'C' || c == 'D' || c == 'E' || c == 'F' || c == 'X' || c == ' '){
+  if(c == 'A' || c == 'B' || c == 'C' || c == 'D' || c == 'E' || c == 'F' || c == ' '){
     if (stat != c){
-      if (c == 'X'){
-        if (stat != ' ' && delay_time > 0){
-          delay_time -= 80;
-          stat += 1;
-        }
-      }else if(c == ' '){
+      if(c == ' '){
         stat = c;
         noTone(buzzerPin);
         digitalWrite(redPin, LOW);
@@ -36,7 +30,7 @@ void loop() {
     }
   }
   if (stat != ' '){
-    tone(buzzerPin, 880, 100);
+    tone(buzzerPin, 880, 99);
     delay(delay_time);
   }else{
     delay(500);

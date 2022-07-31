@@ -8,9 +8,7 @@
 
 #define BUFFER_SIZE 1024
 
-DetectClient::DetectClient(const std::string &addr, uint16_t port, int _cameraId,
-						   void _updateOffset(int64_t), Eigen::Matrix4f _M_inv)
-	: cameraId(_cameraId), M_inv(_M_inv), updateOffset(_updateOffset)
+UDPClient::UDPClient(const std::string &addr, uint16_t port)
 {
 	addrLen = sizeof(struct sockaddr_in);
 	memset(&serverAddr, 0, addrLen);
@@ -23,17 +21,33 @@ DetectClient::DetectClient(const std::string &addr, uint16_t port, int _cameraId
 	if (sockfd < 0) {
 		perror("Fail to setup socket\n");
 	}
-
-	feedbackThread = std::thread(&DetectClient::pollFeedback, this);
 }
 
-DetectClient::~DetectClient()
+UDPClient::~UDPClient()
+{
+
+}
+
+void UDPClient::sendToServer(const void *buf, int len)
+{
+    int i = sendto(sockfd, buf, len, 0, (struct sockaddr*)&serverAddr, addrLen);
+	printf("Sending %d bytes...\n", i);
+}
+
+SkeletonClient::SkeletonClient(const std::string &addr, uint16_t port, int _cameraId,
+						   void _updateOffset(int64_t), Eigen::Matrix4f _M_inv)
+	: UDPClient(addr, port), cameraId(_cameraId), M_inv(_M_inv), updateOffset(_updateOffset)
+{
+	feedbackThread = std::thread(&SkeletonClient::pollFeedback, this);
+}
+
+SkeletonClient::~SkeletonClient()
 {
     pthread_cancel(feedbackThread.native_handle());
 	feedbackThread.join();
 }
 
-void DetectClient::pollFeedback()
+void SkeletonClient::pollFeedback()
 {
 	char buf[BUFFER_SIZE];
 
@@ -54,12 +68,7 @@ void DetectClient::pollFeedback()
     }
 }
 
-void DetectClient::sendToServer(const char *buf, int len)
-{
-    sendto(sockfd, buf, len, 0, (struct sockaddr*)&serverAddr, addrLen);
-}
-
-void DetectClient::sendEmpty(uint64_t frameId)
+void SkeletonClient::sendEmpty(uint64_t frameId)
 {
 	Json::Value payload;
 	payload["camera_id"] = cameraId;
@@ -70,7 +79,7 @@ void DetectClient::sendEmpty(uint64_t frameId)
 	sendToServer(jsonStr.c_str(), jsonStr.length());
 }
 
-void DetectClient::send(uint64_t frameId, const tdv::nuitrack::Skeleton &newSkeleton)
+void SkeletonClient::sendSkeleton(uint64_t frameId, const tdv::nuitrack::Skeleton &newSkeleton)
 {
 	Json::Value bodyNodes;
 	for (int i = 0; i < 25; ++i) {
