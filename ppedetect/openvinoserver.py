@@ -13,6 +13,7 @@ model_path = "./model/ppe.xml"
 class_names = ['glove', 'goggle', 'hand', 'head', 'helmet']
 colors = [(34, 139, 34), (46, 84, 8), (84, 46, 8), (0, 69, 255), (0, 0, 139)]
 
+# frame_id = 0
 
 def recv_img(recv: socket.socket):
     bytes, addr = recv.recvfrom(65536)
@@ -87,10 +88,16 @@ if __name__ == "__main__":
         for (class_id, confidence, box) in zip(filtered_ids, filered_confidences, filtered_boxes):
             id = int(class_id)
             if id == 0:
+                if confidence < 0.7:
+                    continue
                 has_glove = True
             elif id == 1:
+                if confidence < 0.5:
+                    continue
                 has_goggle = True
             elif id == 4:
+                if confidence < 0.85:
+                    continue
                 has_helmet = True
             color = colors[id]
             cv2.rectangle(img, box, color, 3)
@@ -98,8 +105,9 @@ if __name__ == "__main__":
             cv2.putText(img, class_names[class_id], (box[0] + 20, box[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
             print(class_names[class_id], confidence, box)
             
-        send.sendto(json.dumps({ "has_helmet": has_helmet, "has_goggle": has_goggle, "has_glove": has_goggle }).encode(), (config.server_ip, config.server_detect_port))
-        
+        send.sendto(json.dumps({ "has_helmet": has_helmet, "has_goggle": has_goggle, "has_glove": has_glove }).encode(), (config.server_ip, config.server_detect_port))
+        # frame_id += 1
+        # cv2.imwrite("./data/{}.png".format(frame_id), img)
         cv2.resize(img, (640, 360), img)
         success, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 20])
         i = send.sendto(buf, (config.server_ip, config.server_image_port))

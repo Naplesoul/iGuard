@@ -82,7 +82,7 @@ void onFrameUpdate(RGBFrame::Ptr frame)
         }
     }
     // cv::imwrite("frame.png", bgrFrame);
-    cv::resize(bgrFrame, bgrFrame, cv::Size(1280, 720));
+    cv::resize(bgrFrame, bgrFrame, cv::Size(800, 450));
     int quality = 40; //压缩比率0～100
     std::vector<uint8_t> imageData;
     std::vector<int> compress_params;
