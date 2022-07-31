@@ -18,8 +18,14 @@ public class KeyPack_Vector3{
 
 [System.Serializable]
 public class KeyPack_NodeInfo{
+    public string type;
     public string pose;
-    public bool danger;
+    public bool running;
+    public float carriage_x_high;
+    public float carriage_x_low;
+    public string motion;
+    public string motion_name;
+    public float motion_value;
     public KeyPack_Vector3[] nodes;
 }
 
@@ -35,6 +41,10 @@ public class WebPack_Vector3{
 [System.Serializable]
 public class WebPack_NodeInfo{
     public long frame_id;
+    public float carriage_x;
+    public float carriage_z;
+    public bool running;
+    
     public WebPack_Vector3[] body_nodes;
     public WebPack_Vector3[] left_hand_nodes;
     public WebPack_Vector3[] right_hand_nodes;
@@ -45,6 +55,8 @@ public class Skeleton : MonoBehaviour
     private static string ip = "0.0.0.0";
     private static int port = 50002;
     private static Socket socket;
+
+    public static float sim;
 
     private GameObject[] body_nodes;
     private GameObject[] body_bones;
@@ -66,14 +78,24 @@ public class Skeleton : MonoBehaviour
     public GameObject nodePrefab;
     public GameObject pPrefab;
     public GameObject bonePrefab;
-    private Vector3[] keyPose;
+    private Vector3[] keyPose, okPose;
+
+    private int keyAlertId = -1;
+    private int ppe_helmetAlertId = -2;
+    private int ppe_gloveAlertId = -2;
+    private int ppe_goggleAlertId = -2;
 
     private GameObject[] preNodes;
     private Vector3[] prePose;
 
-    private string[] keyPoseList;
+    private string[] keyPoseNameList;
+    private KeyPack_NodeInfo[] keyPoseList;
+    private string[] actionList;
     private int currKeyPoseIndex;
     private long last_frame_id;
+    private float last_ok_time;
+
+    private Vector3 camera_relative_pos;
 
     public Material keyMat;
     public Material defMat;
@@ -83,14 +105,24 @@ public class Skeleton : MonoBehaviour
     public Text simiText;
     public Text nextText;
     public Text timeText;
-
+    public Text actText;
+    public Text simText;
     public GameObject lathe;
     public GameObject driller;
     private GameObject currentObject;
+    public GameObject[] dangerAreas;
+    private bool machine_running = false;
+
+    public GameObject helmet;
+    public GameObject goggle;
+    public GameObject glove_left;
+    public GameObject glove_right;
 
     // Start is called before the first frame update
     void Start()
     {
+        Screen.SetResolution(2560, 1440, true, 60);
+
         body_nodes = new GameObject[19];
         lh_nodes = new GameObject[21];
         rh_nodes = new GameObject[21];
@@ -114,11 +146,13 @@ public class Skeleton : MonoBehaviour
         bnMap = new Vector2Int[18];
         hbnMap = new Vector2Int[21];
         keyPose = new Vector3[19];
-        keyPoseList = new string[0];
+        okPose = new Vector3[21];
         prePose = new Vector3[19];
         preNodes = new GameObject[19];
         currKeyPoseIndex = 0;
         last_frame_id = -1;
+
+        camera_relative_pos = new Vector3(1.8f, -1.2f, 0.8f);
         
         for (int i = 0; i < 19 ;i ++){
             body_nodes[i] = GameObject.Instantiate(nodePrefab, new Vector3(0, -10, 0), new Quaternion());
@@ -189,7 +223,12 @@ public class Skeleton : MonoBehaviour
         hbnMap[19] = new Vector2Int(19, 20);
         hbnMap[20] = new Vector2Int(0, 17);
 
+        DangerCol.dangerText = dangerText;
+        dangerText.text = "当前无危险";
+        DangerCol.socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         CaseChanged(0);
+        LoadOKPos();
+
         
         socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         socket.Bind(new IPEndPoint(IPAddress.Parse(ip), port));
@@ -203,8 +242,12 @@ public class Skeleton : MonoBehaviour
     void Update()
     {
         for (int i = 0; i < 19 ;i ++){
-            body_nodes[i].transform.localPosition = body_nodePos[i];
-            body_nodes[i].SetActive(body_nodeActive[i]);
+            if(!body_nodeActive[i]){
+                body_nodes[i].transform.localPosition = new Vector3(0, -1, 0);
+            }else{
+                body_nodes[i].transform.localPosition = body_nodePos[i];
+            }
+            //body_nodes[i].SetActive(body_nodeActive[i]);
             preNodes[i].transform.localPosition = prePose[i];
         }
         if (!body_nodeActive[8]){
@@ -214,12 +257,22 @@ public class Skeleton : MonoBehaviour
             body_nodes[11].transform.localScale = new Vector3(0.02f, 0.02f, 0.02f); 
         }
         for (int i = 0; i < 21 ;i ++){
-            lh_nodes[i].transform.localPosition = lh_nodePos[i];
-            lh_nodes[i].SetActive(lh_nodeActive[i]);
+            if(!lh_nodeActive[i]){
+                lh_nodes[i].transform.localPosition = new Vector3(0, -15, 0);
+            }else{
+                lh_nodes[i].transform.localPosition = lh_nodePos[i];
+            }
+            //lh_nodes[i].transform.localPosition = lh_nodePos[i];
+            //lh_nodes[i].SetActive(lh_nodeActive[i]);
         }
         for (int i = 0; i < 21 ;i ++){
-            rh_nodes[i].transform.localPosition = rh_nodePos[i];
-            rh_nodes[i].SetActive(rh_nodeActive[i]);
+            if(!rh_nodeActive[i]){
+                rh_nodes[i].transform.localPosition = new Vector3(0, -1, 0);
+            }else{
+                rh_nodes[i].transform.localPosition = rh_nodePos[i];
+            }
+            //rh_nodes[i].transform.localPosition = rh_nodePos[i];
+            //rh_nodes[i].SetActive(rh_nodeActive[i]);
         }
         for (int i = 0; i < 18 ;i ++){
             Vector3 a = body_nodePos[bnMap[i].x], b = body_nodePos[bnMap[i].y];
@@ -270,39 +323,185 @@ public class Skeleton : MonoBehaviour
             rh_bones[i].transform.localScale = new Vector3(0.005f, upward.magnitude / 2, 0.005f); 
         }
 
-        float cos = GetSimilarity(keyPose, false);
-        simiText.text = "当前步骤完成度：" + Mathf.Round(cos * 10000) / 100 + "%";
-        if (cos > 0.9){
-            body_nodes[0].GetComponent<MeshRenderer>().material = keyMat;
+
+        float cos = GetSimilarity_hand(okPose);
+        if (currKeyPoseIndex >= keyPoseList.Length){
+        }else if (cos > 0.91 && Time.time - last_ok_time > 5){
+            last_ok_time = Time.time;
             NextKeyPos();
         }else{
-            body_nodes[0].GetComponent<MeshRenderer>().material = defMat;
+            cos = GetSimilarity(keyPoseList[currKeyPoseIndex]);
+            simiText.text = "当前步骤完成度：" + Mathf.Round(cos * 10000) / 100 + "%";
+            if (keyPoseList[currKeyPoseIndex].type == "motion"){
+                simText.text = "当前动作映射值：" + sim + "/" + keyPoseList[currKeyPoseIndex].motion_value;
+                if (cos < 0.92){
+                    int ret = Alert.updateAlertMsg(keyAlertId, "动作不规范：\n" + keyPoseList[currKeyPoseIndex].pose, 25);
+                    if (ret != keyAlertId){
+                        keyAlertId = ret;
+                    }
+                }else{
+                    Alert.removeAlertMsg(keyAlertId);
+                }
+                
+                if (currKeyPoseIndex + 1 < keyPoseList.Length){
+                    int i = currKeyPoseIndex + 1;
+                    cos = GetSimilarity(keyPoseList[i]);
+                    if (cos > 0.98 && keyPoseList[i].type == "check"){
+                        Alert.removeAlertMsg(keyAlertId);
+                        NextKeyPos();
+                    }
+                }
+            }else if (keyPoseList[currKeyPoseIndex].type == "ppe"){
+                if (true){
+                    if (PPED.has_glove){
+                        glove_left.transform.localPosition = body_nodePos[8];
+                        glove_right.transform.localPosition = body_nodePos[12];
+                        int ret = Alert.updateAlertMsg(ppe_gloveAlertId, "请立即摘下手套！", 110);
+                        if (ret != ppe_gloveAlertId){
+                            ppe_gloveAlertId = ret;
+                        }
+                    }else{
+                        glove_left.transform.localPosition = new Vector3(1.65f, 1.24f, 0.7f);
+                        glove_right.transform.localPosition = new Vector3(1.45f, 1.24f, 0.7f);
+                        Alert.removeAlertMsg(ppe_gloveAlertId);
+                        ppe_gloveAlertId = -1;
+                    }
+                }
+                if (keyPoseList[currKeyPoseIndex].pose.Contains("护目镜")){
+                    if (PPED.has_goggle){
+                        goggle.transform.localPosition = body_nodePos[0];
+                        Alert.removeAlertMsg(ppe_goggleAlertId);
+                        ppe_goggleAlertId = -1;
+                        NextKeyPos();
+                    }else if(body_nodeActive[0]){
+                        goggle.transform.localPosition = new Vector3(1.6f, 1.25f, 0.5f);
+                        int ret = Alert.updateAlertMsg(ppe_goggleAlertId, "是否佩戴护目镜？", 101);
+                        if (ret != ppe_goggleAlertId){
+                            ppe_goggleAlertId = ret;
+                        }
+                    }
+                }else if (keyPoseList[currKeyPoseIndex].pose.Contains("工作帽")){
+                    if (PPED.has_helmet){
+                        helmet.transform.localPosition = body_nodePos[0] + new Vector3(0, 0.11f, 0);
+                        Alert.removeAlertMsg(ppe_helmetAlertId);
+                        ppe_helmetAlertId = -1;
+                        NextKeyPos();
+                    }else if(body_nodeActive[0]){
+                        helmet.transform.localPosition = new Vector3(1.25f, 1.28f, 0.5f);
+                        int ret = Alert.updateAlertMsg(ppe_helmetAlertId, "是否佩戴工作帽？", 101);
+                        if (ret != ppe_helmetAlertId){
+                            ppe_helmetAlertId = ret;
+                        }
+                    }
+                }
+            }else {                
+                simText.text = "当前动作映射值：" + sim;
+                if (cos > 0.97){
+                    Alert.removeAlertMsg(keyAlertId);
+                    NextKeyPos();
+                }
+                if (currKeyPoseIndex + 1 < keyPoseList.Length){
+                    int i = currKeyPoseIndex + 1;
+                    cos = GetSimilarity(keyPoseList[i]);
+                    if (cos > 0.98 && keyPoseList[i].type != "motion"){
+                        int ret = Alert.updateAlertMsg(keyAlertId, "遗漏重要步骤：\n" + keyPoseList[currKeyPoseIndex].pose, 35);
+                        if (ret != keyAlertId){
+                            keyAlertId = ret;
+                        }
+                    }
+                }
+            }            
         }
 
-        Camera.main.transform.localPosition = new Vector3(body_nodePos[3].x - 1.8f, body_nodePos[3].y + 1.2f, body_nodePos[3].z - 0.8f);
+        if (ppe_goggleAlertId == -1){
+            goggle.transform.localPosition = body_nodePos[0];
+        }
+        if (ppe_helmetAlertId == -1){
+            helmet.transform.localPosition = body_nodePos[0] + new Vector3(0, 0.11f, 0);
+        }
+        if (ppe_gloveAlertId == -1){
+            glove_left.transform.localPosition = new Vector3(1.65f, 1.24f, 0.7f);
+            glove_right.transform.localPosition = new Vector3(1.45f, 1.24f, 0.7f);
+        }
+
+
+        if (LatheStatus.running != machine_running){
+            LatheStatus.running = machine_running;
+            foreach (GameObject obj in dangerAreas)
+            {
+                if (obj.name.Contains("static")) continue;
+                Vector3 old_pos = obj.transform.localPosition;
+                if (machine_running){
+                    //collider.enabled = true;
+                    obj.GetComponent<MeshRenderer>().material = dangerMat;
+                    obj.transform.localPosition = old_pos + new Vector3(0, -15, 0);
+                }else{
+                    //collider.enabled = false;
+                    obj.gameObject.GetComponent<MeshRenderer>().material = preMat;
+                    obj.transform.localPosition = old_pos + new Vector3(0, 15, 0);
+                }
+            }
+            // foreach (Transform child in currentObject.transform)
+            // {
+            //     if(child.gameObject.name.Contains("dangerCylinder")){
+            //         //CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+            //         Vector3 old_pos = child.localPosition; //
+            //         if (machine_running){
+            //             //collider.enabled = true;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+            //             child.localPosition = old_pos + new Vector3(0, -15, 0);
+            //         }else{
+            //             //collider.enabled = false;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+            //             child.localPosition = old_pos + new Vector3(0, 15, 0);
+            //         }
+            //     }
+            //     if(child.gameObject.name.Contains("dangerCube")){
+            //         //BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+            //         Vector3 old_pos = child.localPosition; //
+            //         if (machine_running){
+            //             //collider.enabled = true;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+            //             child.localPosition = old_pos + new Vector3(0, -15, 0);
+            //         }else{
+            //             //collider.enabled = false;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+            //             child.localPosition = old_pos + new Vector3(0, 15, 0);
+            //         }
+            //     }
+            // }
+        }
+
         timeText.text = string.Format("{0:T}", DateTime.Now);
     }
 
-    private float GetSimilarity(Vector3[] kp, bool strict){
-        //Vector3 m = new Vector3();
+    private float GetSimilarity(KeyPack_NodeInfo kn){
+        //Debug.Log("sim: " + kn.type + kn.pose);
+        float s;
+        if (kn.type == "key"){
+            for (int i = 0; i < 19 ;i ++){
+                keyPose[i].x = kn.nodes[i].x / 1000;
+                keyPose[i].y = kn.nodes[i].y / 1000;
+                keyPose[i].z = kn.nodes[i].z / 1000;
+            }
+            s = GetSimilarity_body(keyPose);
+        }else if (kn.type == "motion"){
+            s = GetSimilarity_motion(kn.motion_value);
+        }else{
+            if (LatheStatus.running == kn.running && LatheStatus.carriage_x <= kn.carriage_x_high && LatheStatus.carriage_x >= kn.carriage_x_low){
+                return 1f;
+            }
+            return 0f;
+        }
+        //Debug.Log("sim: " + s);
+        return s;
+    }
+
+    private float GetSimilarity_body(Vector3[] kp){
         float r = 0;
-        // if (!strict){
-        //     for (int i = 0; i < 19 ;i ++){
-        //         m += keyPose[i] - nodePos[i];
-        //     }
-        //     m = m / 20;
-        // }
         float m1 = 0, m2 = 0;
-        // for (int i = 0; i < 25 ;i ++){
-        //     if (nodes[i] == null) continue;
-        //     r += (nodePos[i] + m).x * (kp[i].x);
-        //     r += (nodePos[i] + m).y * (kp[i].y);
-        //     r += (nodePos[i] + m).z * (kp[i].z);
-        //     m1 += (nodePos[i] + m).magnitude * (nodePos[i] + m).magnitude;
-        //     m2 += kp[i].magnitude * kp[i].magnitude;
-        // }
-        for (int i = 0; i < 11; i ++){
-            if (i == 3 || i == 7) continue;
+        for (int i = 0; i < 12; i ++){
+            if (i == 7 || i == 11) continue;
             Vector3 a = body_nodePos[bnMap[i].x], b = body_nodePos[bnMap[i].y];
             Vector3 ak = kp[bnMap[i].x], bk = kp[bnMap[i].y];
             Vector3 upward = (b - a), upwardk = (bk - ak).normalized * (b - a).magnitude;
@@ -315,51 +514,105 @@ public class Skeleton : MonoBehaviour
         float cos = r / Mathf.Sqrt(m1) / Mathf.Sqrt(m2);
         return cos * cos;
     }
+    private float GetSimilarity_motion(float value){
+        float cos = 2 * value * sim / ((value * value) + (sim * sim));
+        return cos * cos * cos * cos;
+    }
+
+    private float GetSimilarity_hand(Vector3[] kp){
+        float r = 0;
+        float m1 = 0, m2 = 0;
+        for (int i = 0; i < 21; i ++){
+            Vector3 a = rh_nodePos[hbnMap[i].x], b = rh_nodePos[hbnMap[i].y];
+            Vector3 ak = kp[hbnMap[i].x], bk = kp[hbnMap[i].y];
+            Vector3 upward = (b - a), upwardk = (bk - ak).normalized * (b - a).magnitude;
+            r += upward.x * upwardk.x;
+            r += upward.y * upwardk.y;
+            r += upward.z * upwardk.z;
+            m1 += upward.magnitude * upward.magnitude;
+            m2 += upwardk.magnitude * upwardk.magnitude;
+        }
+        float cos = r / Mathf.Sqrt(m1) / Mathf.Sqrt(m2);
+        return cos * cos;
+    }
+
+
 
     private void NextKeyPos(){
+        if (currKeyPoseIndex >= 0){
+            OKMsg.addAlertMsg("已完成：" + keyPoseList[currKeyPoseIndex].pose);
+        }
         currKeyPoseIndex ++;
         if (currKeyPoseIndex < keyPoseList.Length){
-            LoadKeyPos(keyPoseList[currKeyPoseIndex]);
+            KeyPack_NodeInfo node_info = keyPoseList[currKeyPoseIndex];
+            // foreach (Transform child in currentObject.transform)
+            // {
+            //     if(child.gameObject.name.Contains("dangerCylinder")){
+            //         CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+            //         if (node_info.danger){
+            //             collider.enabled = true;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+            //         }else{
+            //             collider.enabled = false;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+            //         }
+            //     }
+            //     if(child.gameObject.name.Contains("dangerCube")){
+            //         BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+            //         if (node_info.danger){
+            //             collider.enabled = true;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
+            //         }else{
+            //             collider.enabled = false;
+            //             child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+            //         }
+            //     }
+            // }
+            // if (!node_info.danger){
+            //     DangerCol.noDanger();
+            // }
+            nextText.text = "请执行关键步骤("+ (currKeyPoseIndex + 1) +"/"+ keyPoseList.Length +")：" + node_info.pose;
+            actText.text = "当前应做动作：" + node_info.motion_name;
         }else {
             nextText.text = "无关键步骤信息";
-            foreach (Transform child in currentObject.transform)
-            {
-                if(child.gameObject.name.Contains("danger")){
-                    CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
-                    collider.enabled = false;
-                    child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                    break;
-                }
-            }
+            actText.text = "无应做动作";
+            // foreach (Transform child in currentObject.transform)
+            // {
+            //     if(child.gameObject.name.Contains("dangerCylinder")){
+            //         CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
+            //         collider.enabled = false;
+            //         child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+            //     }
+            //     if(child.gameObject.name.Contains("dangerCube")){
+            //         BoxCollider collider = child.gameObject.GetComponent<BoxCollider>();
+            //         collider.enabled = false;
+            //         child.gameObject.GetComponent<MeshRenderer>().material = preMat;
+            //     }
+            // }
         }
     }
 
-    private void LoadKeyPos(string filename){
-        Debug.Log("loading key pose " + filename);
-        StreamReader sr = new StreamReader("./Assets/Pose/" + filename + ".json", Encoding.UTF8);
+    private void LoadKeyPos(){
+        for (int i = 0; i < keyPoseNameList.Length; i++){
+            Debug.Log("loading key pose " + keyPoseNameList[i]);
+            StreamReader sr = new StreamReader("./Assets/Pose/" + keyPoseNameList[i] + ".json", Encoding.UTF8);
+            string content =  sr.ReadToEnd();
+            sr.Close();
+            KeyPack_NodeInfo node_info = JsonUtility.FromJson<KeyPack_NodeInfo>(content);
+            keyPoseList[i] = node_info;
+        }
+    }
+
+    private void LoadOKPos(){
+        StreamReader sr = new StreamReader("./Assets/Pose/ok/ok.json", Encoding.UTF8);
         string content =  sr.ReadToEnd();
         sr.Close();
         KeyPack_NodeInfo node_info = JsonUtility.FromJson<KeyPack_NodeInfo>(content);
-        for (int i = 0; i < 19 ;i ++){
-            keyPose[i].x = node_info.nodes[i].x / 1000;
-            keyPose[i].y = node_info.nodes[i].y / 1000;
-            keyPose[i].z = node_info.nodes[i].z / 1000;
+        for (int i = 0; i < 21 ;i ++){
+            okPose[i].x = node_info.nodes[i].x / 1000;
+            okPose[i].y = node_info.nodes[i].y / 1000;
+            okPose[i].z = node_info.nodes[i].z / 1000;
         }
-        foreach (Transform child in currentObject.transform)
-        {
-            if(child.gameObject.name.Contains("danger")){
-                CapsuleCollider collider = child.gameObject.GetComponent<CapsuleCollider>();
-                if (node_info.danger){
-                    collider.enabled = true;
-                    child.gameObject.GetComponent<MeshRenderer>().material = dangerMat;
-                }else{
-                    collider.enabled = false;
-                    child.gameObject.GetComponent<MeshRenderer>().material = preMat;
-                }
-                break;
-            }
-        }
-        nextText.text = "请执行关键步骤("+ (currKeyPoseIndex + 1) +"/"+ keyPoseList.Length +")：" + node_info.pose;
     }
 
     private void SetNodePos(WebPack_NodeInfo ni){
@@ -376,6 +629,9 @@ public class Skeleton : MonoBehaviour
                 body_nodePos[i].x = body_nodePos[i].x * (1 - ni.body_nodes[i].score / 100) + (ni.body_nodes[i].x / 1000 * ni.body_nodes[i].score / 100);
                 body_nodePos[i].y = body_nodePos[i].y * (1 - ni.body_nodes[i].score / 100) + (ni.body_nodes[i].y / 1000 * ni.body_nodes[i].score / 100);
                 body_nodePos[i].z = body_nodePos[i].z * (1 - ni.body_nodes[i].score / 100) + (ni.body_nodes[i].z / 1000 * ni.body_nodes[i].score / 100);
+                // body_nodePos[i].x = ni.body_nodes[i].x / 1000;
+                // body_nodePos[i].y = ni.body_nodes[i].y / 1000;
+                // body_nodePos[i].z = ni.body_nodes[i].z / 1000;
             }
             for (int i = 0; i < 18 ;i ++){
                 body_boneActive[i] = (ni.body_nodes[bnMap[i].x].score != 0 && ni.body_nodes[bnMap[i].y].score != 0);
@@ -394,6 +650,13 @@ public class Skeleton : MonoBehaviour
                 for (int i = 0; i < 21 ;i ++){
                     lh_boneActive[i] = (ni.left_hand_nodes[hbnMap[i].x].score != 0 && ni.left_hand_nodes[hbnMap[i].y].score != 0);
                 }
+            }else {
+                for (int i = 0; i < 21;i ++){
+                    lh_nodeActive[i] = false;
+                }
+                for (int i = 0; i < 21 ;i ++){
+                    lh_boneActive[i] = false;
+                }
             }
             if (ni.right_hand_nodes != null){
                 body_nodeActive[12] = false;
@@ -408,14 +671,26 @@ public class Skeleton : MonoBehaviour
                 for (int i = 0; i < 21 ;i ++){
                     rh_boneActive[i] = (ni.right_hand_nodes[hbnMap[i].x].score != 0 && ni.right_hand_nodes[hbnMap[i].y].score != 0);
                 }
-            }
-            if (last_frame_id != -1){
-                for (int i = 0; i < 19 ;i ++){
-                    prePose[i].x = (body_nodePos[i].x - body_lastNodePos[i].x) < 0.1 ? (2 * body_nodePos[i].x - body_lastNodePos[i].x) : body_lastNodePos[i].x;
-                    prePose[i].y = (body_nodePos[i].y - body_lastNodePos[i].y) < 0.1 ? (2 * body_nodePos[i].y - body_lastNodePos[i].y) : body_lastNodePos[i].y;
-                    prePose[i].z = (body_nodePos[i].z - body_lastNodePos[i].z) < 0.1 ? (2 * body_nodePos[i].z - body_lastNodePos[i].z) : body_lastNodePos[i].z;
+            }else {
+                for (int i = 0; i < 21;i ++){
+                    rh_nodeActive[i] = false;
+                }
+                for (int i = 0; i < 21 ;i ++){
+                    rh_boneActive[i] = false;
                 }
             }
+
+            LatheStatus.carriage_x = ni.carriage_x / 100;
+            LatheStatus.carriage_z = ni.carriage_z / 100;
+            machine_running = ni.running;
+
+            // if (last_frame_id != -1){
+            //     for (int i = 0; i < 19 ;i ++){
+            //         prePose[i].x = (body_nodePos[i].x - body_lastNodePos[i].x) < 0.1 ? (2 * body_nodePos[i].x - body_lastNodePos[i].x) : body_lastNodePos[i].x;
+            //         prePose[i].y = (body_nodePos[i].y - body_lastNodePos[i].y) < 0.1 ? (2 * body_nodePos[i].y - body_lastNodePos[i].y) : body_lastNodePos[i].y;
+            //         prePose[i].z = (body_nodePos[i].z - body_lastNodePos[i].z) < 0.1 ? (2 * body_nodePos[i].z - body_lastNodePos[i].z) : body_lastNodePos[i].z;
+            //     }
+            // }
             last_frame_id = ni.frame_id;
         }
     }
@@ -433,7 +708,7 @@ public class Skeleton : MonoBehaviour
             Debug.Log(node_info_str);
 
             WebPack_NodeInfo node_info = JsonUtility.FromJson<WebPack_NodeInfo>(node_info_str);
-            //Debug.Log(node_info.node_num);
+            //Debug.Log("recv: " + node_info.carriage_x);
             //Debug.Log(node_info.nodes);
             SetNodePos(node_info);
         }
@@ -444,12 +719,16 @@ public class Skeleton : MonoBehaviour
         driller.SetActive(value == 1);
         if (value == 0){
             currentObject = lathe;
-            keyPoseList = new string[5]{"lathe/tighten", "lathe/start", "lathe/cut", "lathe/stop", "lathe/release"};
+            keyPoseNameList = new string[9]{"lathe/ppe_goggle", "lathe/ppe_helmet", "lathe/tighten_knife", "lathe/tighten", "lathe/start", "lathe/check", "lathe/front", "lathe/stop", "lathe/back"};
+            keyPoseList = new KeyPack_NodeInfo[9];
+            LoadKeyPos();
             currKeyPoseIndex = -1;
             NextKeyPos();
         }else if (value == 1){
             currentObject = driller;
-            keyPoseList = new string[5]{"driller/tighten", "driller/start", "driller/drill", "driller/stop", "driller/release"};
+            keyPoseNameList = new string[5]{"driller/wrench", "driller/start", "driller/drill", "driller/stop", "driller/release"};
+            keyPoseList = new KeyPack_NodeInfo[5];
+            LoadKeyPos();
             currKeyPoseIndex = -1;
             NextKeyPos();
         }
@@ -459,6 +738,15 @@ public class Skeleton : MonoBehaviour
         dangerText.enabled = f;
         for (int i = 0; i < 19 ;i ++){
             body_nodes[i].GetComponent<SphereCollider>().enabled = f;
+        }
+        for (int i = 0; i < 21 ;i ++){
+            lh_nodes[i].GetComponent<SphereCollider>().enabled = f;
+        }
+        for (int i = 0; i < 19 ;i ++){
+            rh_nodes[i].GetComponent<SphereCollider>().enabled = f;
+        }
+        if (!f){
+            DangerCol.noDanger();
         }
     }
 
@@ -471,4 +759,36 @@ public class Skeleton : MonoBehaviour
         }
     }
 
+    public void ActionModeChanged(bool f){
+        actText.enabled = f;
+        simText.enabled = f;
+    }
+
+    public void CameraChanged(int m){
+        if (m == 0){
+            camera_relative_pos = new Vector3(1.8f, -1.2f, 0.8f);
+        }else if (m == 3){
+            camera_relative_pos = new Vector3(0f, -1.3f, 1.4f);
+        }else if (m == 2){
+            camera_relative_pos = new Vector3(0f, -0.6f, -1.8f);
+        }else {
+            camera_relative_pos = new Vector3(0f, -2.6f, -0.2f);
+        }
+        Camera.main.transform.localPosition = body_nodePos[3] - camera_relative_pos;
+        Camera.main.transform.localRotation = Quaternion.LookRotation(camera_relative_pos, new Vector3(0, 1, 0));
+    }
+
+    public void ResetAll(){
+        DangerModeChanged(false);
+        ActionModeChanged(false);
+        KeyModeChanged(false);
+        keyAlertId = -1;
+        ppe_helmetAlertId = ppe_gloveAlertId = ppe_goggleAlertId = -2;
+        machine_running = false;
+        DangerCol.noDanger();
+        Alert.removeAll();
+        DangerModeChanged(true);
+        ActionModeChanged(true);
+        KeyModeChanged(true);
+    }
 }

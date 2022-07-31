@@ -1,7 +1,6 @@
 {
     "pose": "下钻",
     "danger": true,
-    "node_num": 25,
     "nodes": [
         {
             "score": 0.75,

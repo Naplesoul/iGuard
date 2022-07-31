@@ -1,7 +1,9 @@
 {
     "pose": "关机",
+    "motion": "turn",
+    "motion_name": "进刀",
+    "motion_value": 0.0,
     "danger": true,
-    "node_num": 25,
     "nodes": [
         {
             "score": 75,

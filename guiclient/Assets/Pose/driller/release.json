@@ -1,7 +1,9 @@
 {
     "pose": "取下工件",
+    "motion": "wrench",
+    "motion_name": "拧",
+    "motion_value": 0.0,
     "danger": false,
-    "node_num": 25,
     "nodes": [
         {
             "score": 75,

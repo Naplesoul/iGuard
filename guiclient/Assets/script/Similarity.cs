@@ -21,8 +21,6 @@ public class Similarity : MonoBehaviour
     private static string ip = "0.0.0.0";
     private static int port = 50003;
 
-    public Text actText;
-    public Text simText;
 
     private static Socket socket;
 
@@ -43,8 +41,7 @@ public class Similarity : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        actText.text = "当前动作：未知";
-        simText.text = "动作映射值：" + simi;
+        if (Skeleton.sim != simi) Skeleton.sim = simi;
     }
 
     void receiveFromClient(){
