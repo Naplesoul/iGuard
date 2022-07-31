@@ -10,8 +10,7 @@ from torch.utils.data import DataLoader
 import config
 import utils
 
-use_cuda = torch.cuda.is_available()
-    
+
 class MMD_NCA_loss(nn.Module):
     def __init__(self):
         super().__init__()
@@ -54,15 +53,17 @@ class MMD_NCA_loss(nn.Module):
         loss = torch.exp(- numerator / denominator)
         return loss
 
+
 class MMD_NCA_Dataset(Dataset):
     def __init__(self, dir, num_MMD_NCA_Groups):
         self.raw = {}
         available_datasets = {}
         classes_all = []
-        for motion_class in config.train_classes:
-            path = os.path.join(dir, motion_class[0] + ".json")
+        train_classes = os.listdir(dir)
+        for motion_class in train_classes:
+            path = os.path.join(dir, motion_class)
             trials = utils.read_from_json(path)
-            self.raw[motion_class[0]] = trials
+            self.raw[motion_class] = trials
 
             available_dataset = []
             for i in range(len(trials)):
@@ -73,12 +74,12 @@ class MMD_NCA_Dataset(Dataset):
                     available_dataset.append([i, j])
             
             if len(available_dataset) <= 25:
-                print("too few dataset: {}: {} available dataset".format(motion_class[0], len(available_dataset)))
+                print("too few dataset: {}: {} available dataset".format(motion_class, len(available_dataset)))
                 continue
 
-            print("{}: {} available dataset".format(motion_class[0], len(available_dataset)))
-            classes_all.append(motion_class[0])
-            available_datasets[motion_class[0]] = available_dataset
+            print("{}: {} available dataset".format(motion_class, len(available_dataset)))
+            classes_all.append(motion_class)
+            available_datasets[motion_class] = available_dataset
 
         self.num_MMD_NCA_Groups = num_MMD_NCA_Groups
         gc.collect()
@@ -128,6 +129,7 @@ class MMD_NCA_Dataset(Dataset):
     def __len__(self):
         return self.num_MMD_NCA_Groups
 
+
 def train(model, train_loader, myloss, optimizer, epoch):
     model.train()
     for batch_idx, train_data in enumerate(train_loader):
@@ -141,12 +143,13 @@ def train(model, train_loader, myloss, optimizer, epoch):
         print('Train Epoch: {} \tloss: {:.2f}'.format(epoch, 10000.*loss.data.cpu().numpy()))
         return loss
 
+
 if __name__ == "__main__":
     #generate training data
     train_data = MMD_NCA_Dataset(config.processed_dir, config.num_MMD_NCA_Groups)
     train_loader = DataLoader(train_data, batch_size = 1, shuffle = True)
 
-    start_epoch, model, optimizer = utils.load_model(config.use_cuda)
+    start_epoch, model, optimizer = utils.load_model(True)
     epoch = start_epoch
     criterion = MMD_NCA_loss()
     loss_total = 0.

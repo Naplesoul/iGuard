@@ -245,6 +245,11 @@ void Combine::handCameraRecv(const struct sockaddr_in &clientAddr, const Json::V
     }
 
     skeleton.updateHands(payload);
+
+    machineState.running = payload["running"].asBool();
+    machineState.carriageX = payload["carriage_x"].asInt();
+    machineState.carriageZ = payload["carriage_z"].asInt();
+
     handFrameId = frameId;
     if (frameId % 16 == 0) {
         std::string feedback = "{\"offset\":" + std::to_string(avgHandDiff) +"}";
@@ -319,7 +324,12 @@ void Combine::sendToGuiClient()
         payload["right_hand_nodes"] = rightHandNodes;
     }
 
+    payload["running"] = machineState.running;
+    payload["carriage_x"] = machineState.carriageX;
+    payload["carriage_z"] = machineState.carriageZ;
+
 	payload["frame_id"] = Json::Value::Int64(mainFrameId);
+    
     printf("Sending to GUI Client...\n");
     // printf("%s\n\n\n", payload.toStyledString().c_str());
 	std::string jsonStr = writer.write(payload);

@@ -21,12 +21,19 @@ def get_skeleton(recv: socket.socket) -> list:
             break
 
     skeleton = payload["body_nodes"]
-    return skeleton
+    anchor = skeleton[4]
+    new_skeleton = []
+    for k in range(4):
+        new_skeleton.append([skeleton[k][0] - anchor[0], skeleton[k][1] - anchor[1], skeleton[k][2] - anchor[2]])
+    for k in range(5, config.joint_size):
+        new_skeleton.append([skeleton[k][0] - anchor[0], skeleton[k][1] - anchor[1], skeleton[k][2] - anchor[2]])
+    return new_skeleton
 
 
 if __name__ == "__main__":
     recv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     recv.bind(("0.0.0.0", config.listen_port))
+    print(f"infer server listening on port {config.listen_port}")
     send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     epoch, model, optimizer = utils.load_model(config.use_cuda)

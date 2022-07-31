@@ -36,6 +36,13 @@ struct Skeleton
     void updateHands(const Json::Value &hands);
 };
 
+struct MachineState
+{
+    bool running = false;
+    int carriageX = 0;
+    int carriageZ = 0;
+};
+
 class Combine
 {
 private:
@@ -47,6 +54,7 @@ private:
     int64_t minorFrameId = 0;
     int64_t handFrameId = 0;
     Skeleton skeleton;
+    MachineState machineState;
 
     int sockfd;
     const int addrLen = sizeof(struct sockaddr_in);
