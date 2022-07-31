@@ -44,7 +44,6 @@ def load_model(use_cuda=True):
     start_epoch = 0
     if use_cuda:
         model = MMD_NCA_Net().cuda().double()
-        device = torch.device('cuda')
     else:
         model = MMD_NCA_Net().double()
         device = torch.device('cpu')
@@ -53,7 +52,10 @@ def load_model(use_cuda=True):
         meta = torch.load(os.path.join(config.model_dir, "model.meta"))
         epoch = meta["epoch"]
         checkpoint_filename = meta["checkpoint"]
-        checkpoint = torch.load(os.path.join(config.model_dir, checkpoint_filename), map_location=device)
+        if use_cuda:
+            checkpoint = torch.load(os.path.join(config.model_dir, checkpoint_filename))
+        else:
+            checkpoint = torch.load(os.path.join(config.model_dir, checkpoint_filename), map_location=device)
 
         model.load_state_dict(checkpoint["net"])
         optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
