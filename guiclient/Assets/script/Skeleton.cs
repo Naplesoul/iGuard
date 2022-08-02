@@ -60,6 +60,7 @@ public class Skeleton : MonoBehaviour
 
     private GameObject[] body_nodes;
     private GameObject[] body_bones;
+    public GameObject head, shouder, body, hip, waist;
 
     private GameObject[] lh_nodes;
     private GameObject[] lh_bones;
@@ -118,6 +119,8 @@ public class Skeleton : MonoBehaviour
     public GameObject glove_left;
     public GameObject glove_right;
 
+    public bool ext;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -161,6 +164,16 @@ public class Skeleton : MonoBehaviour
             preNodes[i].name = "pNode-" + i;
         }
         for (int i = 0; i < 18 ;i ++){
+            
+            //test new bones
+            // if (i == 2){
+            //     body_bones[i] = GameObject.Find("body4-2");
+            // }else if (i == 3){
+            //     body_bones[i] = GameObject.Find("body2-3");
+            // }else if (i == 0){
+            //     body_bones[i] = GameObject.Find("body0-1");
+            // }
+
             body_bones[i] = GameObject.Instantiate(bonePrefab, new Vector3(0, -10, 0), new Quaternion());
             body_bones[i].name = "bone-" + i;
         }
@@ -246,6 +259,17 @@ public class Skeleton : MonoBehaviour
                 body_nodes[i].transform.localPosition = new Vector3(0, -1, 0);
             }else{
                 body_nodes[i].transform.localPosition = body_nodePos[i];
+                if (ext){
+                    if (i <= 1){
+                        body_nodes[i].transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
+                    }else if (i >= 13){
+                        body_nodes[i].transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                    }else {
+                        body_nodes[i].transform.localScale = new Vector3(0.08f, 0.08f, 0.08f);
+                    }
+                }else {
+                    body_nodes[i].transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+                }
             }
             //body_nodes[i].SetActive(body_nodeActive[i]);
             preNodes[i].transform.localPosition = prePose[i];
@@ -288,8 +312,51 @@ public class Skeleton : MonoBehaviour
             body_bones[i].SetActive(body_boneActive[i]);
             body_bones[i].transform.localPosition = (a + b) / 2;
             body_bones[i].transform.localRotation = Quaternion.LookRotation(forward, upward);
-            body_bones[i].transform.localScale = new Vector3(0.02f, upward.magnitude / 2, 0.02f); 
+            if (ext){
+                if (i >= 12){
+                    body_bones[i].transform.localScale = new Vector3(0.13f, upward.magnitude / 2, 0.13f);
+                }else{
+                    body_bones[i].transform.localScale = new Vector3(0.07f, upward.magnitude / 2, 0.07f);
+                }
+            }else{
+                body_bones[i].transform.localScale = new Vector3(0.02f, upward.magnitude / 2, 0.02f);
+            }
         }
+
+        //new model test
+        head.SetActive(ext);
+        shouder.SetActive(ext);
+        waist.SetActive(ext);
+        hip.SetActive(ext);
+        body.SetActive(ext);
+        if (ext){
+            if (body_boneActive[0]){
+                Vector3 a0 = body_nodePos[0], b0 = body_nodePos[1];
+                head.transform.localPosition = (a0 + b0) / 2;
+                head.transform.localScale = new Vector3((a0 - b0).magnitude + 0.02f, (a0 - b0).magnitude + 0.04f, (a0 - b0).magnitude + 0.02f);
+            }
+            if (body_boneActive[2]){
+                Vector3 a2 = body_nodePos[4], b2 = body_nodePos[2];
+                Vector3 _a2 = body_nodePos[9], _b2 = body_nodePos[5];
+                shouder.transform.localPosition = (_a2 + _b2) / 2;
+                body.transform.localPosition = (a2 + b2) / 2;
+                shouder.transform.localRotation = Quaternion.LookRotation((_a2 - _b2), (a2 - b2));
+                shouder.transform.localScale = new Vector3(0.22f, 0.06f, (_a2 - _b2).magnitude);
+                body.transform.localRotation = Quaternion.LookRotation((_a2 - _b2), (a2 - b2));
+                body.transform.localScale = new Vector3(0.2f, (a2 - b2).magnitude / 2, (_a2 - _b2).magnitude - 0.06f);
+            }
+            if (body_boneActive[3]){
+                Vector3 a3 = body_nodePos[2], b3 = body_nodePos[3];
+                Vector3 _a3 = body_nodePos[16], _b3 = body_nodePos[13];
+                hip.transform.localPosition = (_a3 + _b3) / 2;
+                waist.transform.localPosition = b3;
+                hip.transform.localRotation = Quaternion.LookRotation((_a3 - _b3), (a3 - b3));
+                hip.transform.localScale = new Vector3(0.22f, 0.06f, (_a3 - _b3).magnitude + 0.16f);
+                waist.transform.localRotation = Quaternion.LookRotation((_a3 - _b3), (a3 - b3));
+                waist.transform.localScale = new Vector3(0.19f, (a3 - b3).magnitude / 1.1f, (_a3 - _b3).magnitude + 0.06f);
+            }
+        }
+
         for (int i = 0; i < 21 ;i ++){
             Vector3 a = lh_nodePos[hbnMap[i].x], b = lh_nodePos[hbnMap[i].y];
             Vector3 forward = new Vector3(1, 1, 1);
@@ -612,6 +679,30 @@ public class Skeleton : MonoBehaviour
             okPose[i].x = node_info.nodes[i].x / 1000;
             okPose[i].y = node_info.nodes[i].y / 1000;
             okPose[i].z = node_info.nodes[i].z / 1000;
+        }
+    }
+
+    public void SetoKey(){
+        for (int idx = 0; idx < keyPoseList.Length; idx ++){
+            KeyPack_NodeInfo keypos = keyPoseList[(idx + currKeyPoseIndex) % keyPoseList.Length];
+            if (keypos.type == "key"){
+                Debug.Log("set to " + keypos.pose);
+                WebPack_NodeInfo ni = new WebPack_NodeInfo();
+                last_frame_id = 0;
+                ni.frame_id = 1;
+                ni.body_nodes = new WebPack_Vector3[19];
+                for (int i = 0; i < 19 ;i ++){
+                    ni.body_nodes[i] = new WebPack_Vector3();
+                    ni.body_nodes[i].x = keypos.nodes[i].x;
+                    ni.body_nodes[i].y = keypos.nodes[i].y;
+                    ni.body_nodes[i].z = keypos.nodes[i].z;
+                    ni.body_nodes[i].score = 100;
+                }
+                SetNodePos(ni);
+                currKeyPoseIndex = (idx + currKeyPoseIndex) % keyPoseList.Length - 1;
+                NextKeyPos();
+                break;
+            }
         }
     }
 

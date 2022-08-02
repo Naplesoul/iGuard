@@ -61,7 +61,7 @@ public class DangerCol : MonoBehaviour
     // }
 
     private void OnTriggerStay(Collider other) {
-        if (other.gameObject.name.Contains("node")){
+        if (other.gameObject.name.Contains("node") || other.gameObject.name.Contains("b")){
             dangerText.text = "！！误触" + level + "级危险区：" + other.gameObject.name;
             SendMsg("<" + level);
         }else if (other.gameObject.name.Contains("pNode")){
@@ -69,7 +69,7 @@ public class DangerCol : MonoBehaviour
         }
     }
     private void OnTriggerEnter(Collider other) {
-        if (other.gameObject.name.Contains("node") && alert_id == -1){
+        if ((other.gameObject.name.Contains("node") || other.gameObject.name.Contains("b")) && alert_id == -1){
             alert_id = Alert.updateAlertMsg(alert_id, "请离开危险区：\n" + danger_name, (level[0] - '@') * 10);
         }
     }
@@ -77,7 +77,7 @@ public class DangerCol : MonoBehaviour
         if (dangerText.text.Contains(other.gameObject.name)){
             dangerText.text = "当前无危险";
         }
-        if (other.gameObject.name.Contains("node")){
+        if (other.gameObject.name.Contains("node") || other.gameObject.name.Contains("b")){
             Alert.removeAlertMsg(alert_id);
             alert_id = -1;
             SendMsg(">" + level);
