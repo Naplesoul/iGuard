@@ -20,7 +20,8 @@ using namespace tdv::nuitrack;
 
 bool interrupted = false;
 
-UDPClient *ppeDetectClient = nullptr;
+UDPClient *colorFrameClient = nullptr;
+UDPClient *depthFrameClient = nullptr;
 SkeletonClient *skeletonClient = nullptr;
 
 int fps = 10;
@@ -61,7 +62,7 @@ uint64_t waitUntilNextFrame()
     return newFrameId;
 }
 
-void onFrameUpdate(RGBFrame::Ptr frame)
+void onColorUpdate(RGBFrame::Ptr frame)
 {
     if (frameId % 5 != 0) return;
 
@@ -89,7 +90,12 @@ void onFrameUpdate(RGBFrame::Ptr frame)
     compress_params.push_back(cv::IMWRITE_JPEG_QUALITY);
     compress_params.push_back(quality);
     cv::imencode(".jpg", bgrFrame, imageData, compress_params);
-    ppeDetectClient->sendToServer(imageData.data(), imageData.size());
+    colorFrameClient->sendToServer(imageData.data(), imageData.size());
+}
+
+void onDepthUpdate(DepthFrame::Ptr frame)
+{
+
 }
 
 // Callback for the hand data update event
@@ -145,12 +151,16 @@ int main(int argc, char* argv[])
     int serverPort = config["server_port"].asInt();
     int cameraId = config["camera_id"].asInt();
 
-    if (!config["ppe_server_ip"].empty()) {
-        ppeDetectClient = new UDPClient(config["ppe_server_ip"].asString(), config["ppe_server_port"].asInt());
+    if (!config["color_server_ip"].empty()) {
+        colorFrameClient = new UDPClient(config["color_server_ip"].asString(), config["color_server_port"].asInt());
+    }
+    if (!config["depth_server_ip"].empty()) {
+        depthFrameClient = new UDPClient(config["depth_server_ip"].asString(), config["depth_server_port"].asInt());
     }
     skeletonClient = new SkeletonClient(serverIp, serverPort, cameraId, updateOffset, M_inv);
 
     ColorSensor::Ptr colorSensor = nullptr;
+    DepthSensor::Ptr depthSensor = nullptr;
     SkeletonTracker::Ptr skeletonTracker = nullptr;
 
     // start Nuitrack
@@ -175,16 +185,21 @@ int main(int argc, char* argv[])
             printf("Cannot found Camera Id = %d, Serial = %s, Name = %s\n", cameraId, serial.c_str(), deviceName.c_str());
             Nuitrack::release();
             delete skeletonClient;
-            if (ppeDetectClient) {
-                delete ppeDetectClient;
-                ppeDetectClient = nullptr;
+            if (colorFrameClient) {
+                delete colorFrameClient;
+                colorFrameClient = nullptr;
             }
             exit(-1);
         }
 
-        if (ppeDetectClient) {
+        if (colorFrameClient) {
             colorSensor = ColorSensor::create();
-            colorSensor->connectOnNewFrame(onFrameUpdate);
+            colorSensor->connectOnNewFrame(onColorUpdate);
+        }
+
+        if (depthFrameClient) {
+            depthSensor = DepthSensor::create();
+            depthSensor->connectOnNewFrame(onDepthUpdate);
         }
 
         // Create SkeletonTracker module, other required modules will be
@@ -221,9 +236,9 @@ int main(int argc, char* argv[])
     {
         std::cerr << "LicenseNotAcquired exception (ExceptionType: " << e.type() << ")" << std::endl;
         delete skeletonClient;
-        if (ppeDetectClient) {
-            delete ppeDetectClient;
-            ppeDetectClient = nullptr;
+        if (colorFrameClient) {
+            delete colorFrameClient;
+            colorFrameClient = nullptr;
         }
         Nuitrack::release();
         execv(argv[0], argv);
@@ -235,9 +250,9 @@ int main(int argc, char* argv[])
     }
 
     delete skeletonClient;
-    if (ppeDetectClient) {
-        delete ppeDetectClient;
-        ppeDetectClient = nullptr;
+    if (colorFrameClient) {
+        delete colorFrameClient;
+        colorFrameClient = nullptr;
     }
     Nuitrack::release();
     exit(errorCode);
