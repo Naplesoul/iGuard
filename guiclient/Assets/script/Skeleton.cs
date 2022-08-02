@@ -868,7 +868,9 @@ public class Skeleton : MonoBehaviour
         Camera.main.transform.localPosition = body_nodePos[3] - camera_relative_pos;
         Camera.main.transform.localRotation = Quaternion.LookRotation(camera_relative_pos, new Vector3(0, 1, 0));
     }
-
+    public void ChangeEXT(){
+        ext = !ext;
+    }
     public void ResetAll(){
         DangerModeChanged(false);
         ActionModeChanged(false);
