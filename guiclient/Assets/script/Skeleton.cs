@@ -92,7 +92,7 @@ public class Skeleton : MonoBehaviour
     private string[] keyPoseNameList;
     private KeyPack_NodeInfo[] keyPoseList;
     private string[] actionList;
-    private int currKeyPoseIndex;
+    private int currKeyPoseIndex, selectIndex;
     private long last_frame_id;
     private float last_ok_time;
 
@@ -118,6 +118,10 @@ public class Skeleton : MonoBehaviour
     public GameObject goggle;
     public GameObject glove_left;
     public GameObject glove_right;
+
+    public TMPro.TMP_InputField input_text;
+    public GameObject edit_panel;
+    public Button btnPrefab;
 
     public bool ext;
 
@@ -660,6 +664,11 @@ public class Skeleton : MonoBehaviour
     }
 
     private void LoadKeyPos(){
+        foreach(Transform child in edit_panel.transform){
+            if (child.gameObject.name.Contains("btn")){
+                Destroy(child.gameObject);
+            }
+        }
         for (int i = 0; i < keyPoseNameList.Length; i++){
             Debug.Log("loading key pose " + keyPoseNameList[i]);
             StreamReader sr = new StreamReader("./Assets/Pose/" + keyPoseNameList[i] + ".json", Encoding.UTF8);
@@ -667,6 +676,15 @@ public class Skeleton : MonoBehaviour
             sr.Close();
             KeyPack_NodeInfo node_info = JsonUtility.FromJson<KeyPack_NodeInfo>(content);
             keyPoseList[i] = node_info;
+            Button btn = GameObject.Instantiate(btnPrefab);
+            btn.transform.parent = edit_panel.transform;
+            btn.transform.localPosition = new Vector3(0, 410 - i * 70, 0);
+            btn.name = "btn" + i;
+            int tmp = i;
+            btn.onClick.AddListener(()=>{
+                this.SetSelect(tmp);
+            });
+            btn.transform.Find("Text (Legacy)").GetComponent<Text>().text = keyPoseNameList[i];
         }
     }
 
@@ -871,6 +889,9 @@ public class Skeleton : MonoBehaviour
     public void ChangeEXT(){
         ext = !ext;
     }
+    public void ChangeEDIT(){
+        edit_panel.SetActive(!edit_panel.activeSelf);
+    }
     public void ResetAll(){
         DangerModeChanged(false);
         ActionModeChanged(false);
@@ -883,5 +904,48 @@ public class Skeleton : MonoBehaviour
         DangerModeChanged(true);
         ActionModeChanged(true);
         KeyModeChanged(true);
+    }
+
+    public void AddKey(){
+        Debug.Log("add: " + selectIndex);
+        int len = keyPoseNameList.Length;
+        string[] new_name_list = new string[len + 1];
+        int j = 0;
+        for(int i = 0; i < len + 1; i++){
+            if (i == selectIndex){
+                new_name_list[i] = input_text.text;
+            }else{
+                new_name_list[i] = keyPoseNameList[j];
+                j++;
+            }
+        }
+        keyPoseNameList = new_name_list;
+        keyPoseList = new KeyPack_NodeInfo[len + 1];
+        LoadKeyPos();
+        currKeyPoseIndex = -1;
+        NextKeyPos();
+    }
+    public void DelKey(){
+        Debug.Log("delete: " + selectIndex);
+        int len = keyPoseNameList.Length;
+        string[] new_name_list = new string[len - 1];
+        int j = 0;
+        for(int i = 0; i < len; i++){
+            if (i == selectIndex){
+            }else{
+                new_name_list[j] = keyPoseNameList[i];
+                j++;
+            }
+        }
+        keyPoseNameList = new_name_list;
+        keyPoseList = new KeyPack_NodeInfo[len - 1];
+        LoadKeyPos();
+        currKeyPoseIndex = -1;
+        NextKeyPos();
+    }
+
+    public void SetSelect(int sel){
+        Debug.Log("set: " + sel);
+        selectIndex = sel;
     }
 }
