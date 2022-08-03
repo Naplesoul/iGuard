@@ -25,3 +25,5 @@ if __name__ == "__main__":
         img = recv_img(recv)
         img = cv2.cvtColor(cv2.flip(img, 1), cv2.COLOR_BGR2RGB)
         results = seg.process(img)
+        condition = np.stack((results.segmentation_mask,) * 3, axis=-1) > 0.1
+        

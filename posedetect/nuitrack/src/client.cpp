@@ -35,8 +35,8 @@ void UDPClient::sendToServer(const void *buf, int len)
 }
 
 SkeletonClient::SkeletonClient(const std::string &addr, uint16_t port, int _cameraId,
-						   void _updateOffset(int64_t), Eigen::Matrix4f _M_inv)
-	: UDPClient(addr, port), cameraId(_cameraId), M_inv(_M_inv), updateOffset(_updateOffset)
+						   void _feedback(int64_t, bool), Eigen::Matrix4f _M_inv)
+	: UDPClient(addr, port), cameraId(_cameraId), M_inv(_M_inv), feedback(_feedback)
 {
 	feedbackThread = std::thread(&SkeletonClient::pollFeedback, this);
 }
@@ -64,7 +64,8 @@ void SkeletonClient::pollFeedback()
         Json::Value payload;
         reader.parse(buf, payload);
 		int64_t offset = payload["offset"].asInt64();
-		updateOffset(offset);
+		bool body_scan = payload["body_scan"].asBool();
+		feedback(offset, body_scan);
     }
 }
 
@@ -74,12 +75,12 @@ void SkeletonClient::sendEmpty(uint64_t frameId)
 	payload["camera_id"] = cameraId;
 	payload["frame_id"] = Json::Value::Int64(frameId);
 	
-	printf("\n\n\n%s", payload.toStyledString().c_str());
+	std::cout << payload.toStyledString();
 	std::string jsonStr = writer.write(payload);
 	sendToServer(jsonStr.c_str(), jsonStr.length());
 }
 
-void SkeletonClient::sendSkeleton(uint64_t frameId, const tdv::nuitrack::Skeleton &newSkeleton)
+void SkeletonClient::sendSkeleton(uint64_t frameId, const tdv::nuitrack::Skeleton &skeleton)
 {
 	Json::Value bodyNodes;
 	for (int i = 0; i < 25; ++i) {
@@ -94,9 +95,9 @@ void SkeletonClient::sendSkeleton(uint64_t frameId, const tdv::nuitrack::Skeleto
 			continue;
 		default:
 			Json::Value node;
-			Eigen::Vector4f cam4(newSkeleton.joints[i].real.x, newSkeleton.joints[i].real.y, newSkeleton.joints[i].real.z, 1);
+			Eigen::Vector4f cam4(skeleton.joints[i].real.x, skeleton.joints[i].real.y, skeleton.joints[i].real.z, 1);
 			Eigen::Vector4f real4 = M_inv * cam4;
-			int score = newSkeleton.joints[i].confidence * 100;
+			int score = skeleton.joints[i].confidence * 100;
 
 			node.append(int(real4(0)));
 			node.append(int(real4(1)));
@@ -106,7 +107,7 @@ void SkeletonClient::sendSkeleton(uint64_t frameId, const tdv::nuitrack::Skeleto
 			// node["x"] = int(real4(0));
 			// node["y"] = int(real4(1));
 			// node["z"] = int(real4(2));
-			// node["score"] = newSkeleton.joints[i].confidence;
+			// node["score"] = skeleton.joints[i].confidence;
 
 			bodyNodes.append(node);
 		}
@@ -117,7 +118,57 @@ void SkeletonClient::sendSkeleton(uint64_t frameId, const tdv::nuitrack::Skeleto
 	payload["frame_id"] = Json::Value::Int64(frameId);
 	payload["body_nodes"] = bodyNodes;
 
-	printf("\n\n\n%s", payload.toStyledString().c_str());
+	std::cout << payload.toStyledString();
+	std::string jsonStr = writer.write(payload);
+	sendToServer(jsonStr.c_str(), jsonStr.length());
+}
+
+void SkeletonClient::sendSkeletonAndMetrics(uint64_t frameId, const tdv::nuitrack::Skeleton &skeleton, const BodyMetrics &bodyMetrics)
+{
+	Json::Value bodyNodes;
+	for (int i = 0; i < 25; ++i) {
+		switch (i)
+		{
+		case 0:
+		case 10:
+		case 11:
+		case 16:
+		case 20:
+		case 24:
+			continue;
+		default:
+			Json::Value node;
+			Eigen::Vector4f cam4(skeleton.joints[i].real.x, skeleton.joints[i].real.y, skeleton.joints[i].real.z, 1);
+			Eigen::Vector4f real4 = M_inv * cam4;
+			int score = skeleton.joints[i].confidence * 100;
+
+			node.append(int(real4(0)));
+			node.append(int(real4(1)));
+			node.append(int(real4(2)));
+			node.append(score);
+
+			// node["x"] = int(real4(0));
+			// node["y"] = int(real4(1));
+			// node["z"] = int(real4(2));
+			// node["score"] = skeleton.joints[i].confidence;
+
+			bodyNodes.append(node);
+		}
+	}
+
+	Json::Value metrics;
+	metrics["arm_width"] = bodyMetrics.armWidth;
+	metrics["leg_width"] = bodyMetrics.legWidth;
+	metrics["head_width"] = bodyMetrics.headWidth;
+	metrics["torso_width"] = bodyMetrics.torsoWidth;
+
+	Json::Value payload;
+	payload["camera_id"] = cameraId;
+	payload["frame_id"] = Json::Value::Int64(frameId);
+	payload["body_nodes"] = bodyNodes;
+	payload["body_metircs"] = metrics;
+
+	std::cout << payload.toStyledString();
 	std::string jsonStr = writer.write(payload);
 	sendToServer(jsonStr.c_str(), jsonStr.length());
 }
