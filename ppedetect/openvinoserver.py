@@ -16,9 +16,13 @@ colors = [(34, 139, 34), (46, 84, 8), (84, 46, 8), (0, 69, 255), (0, 0, 139)]
 # frame_id = 0
 
 def recv_img(recv: socket.socket):
+    # global frame_id
+
     bytes, addr = recv.recvfrom(65536)
     bytes = np.asarray(bytearray(bytes), dtype="uint8")
     img = cv2.imdecode(bytes, cv2.IMWRITE_JPEG_QUALITY)
+    # frame_id += 1
+    # cv2.imwrite("./data/{}.png".format(frame_id), img)
     return img
 
 
@@ -106,8 +110,7 @@ if __name__ == "__main__":
             print(class_names[class_id], confidence, box)
             
         send.sendto(json.dumps({ "has_helmet": has_helmet, "has_goggle": has_goggle, "has_glove": has_glove }).encode(), (config.server_ip, config.server_detect_port))
-        # frame_id += 1
-        # cv2.imwrite("./data/{}.png".format(frame_id), img)
+        
         cv2.resize(img, (640, 360), img)
         success, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 20])
         i = send.sendto(buf, (config.server_ip, config.server_image_port))
