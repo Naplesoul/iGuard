@@ -20,9 +20,13 @@ def receiveMessage():
         elif msg_str[0] == " ":
             for level in dl_list:
                 dl_list[level] = 0
+        elif msg_str[0] == "Y":
+            ser.write("Y".encode())
+        elif msg_str[0] == "y":
+            ser.write("y".encode())
+        elif msg_str[0] == "G":
+            ser.write("G".encode())
         lock.release()
-
-
 
 portx="/dev/ttyACM0"
 dl_list = {"F": 0, "E": 0, "D": 0, "C": 0, "B": 0, "A": 0}

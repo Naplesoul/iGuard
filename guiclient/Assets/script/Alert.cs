@@ -49,9 +49,11 @@ public class Alert : MonoBehaviour
                             alertText.text = msg.text;
                         }
                     }
+                    DangerCol.SendMsg("Y");
                 }else{
                     alertPanel.SetActive(false);
                     alertText.text = "";
+                    DangerCol.SendMsg("y");
                 }
                 needUpdate = false;
             }
@@ -64,6 +66,7 @@ public class Alert : MonoBehaviour
             needUpdate = true;
             m = new Message(msg, emer);
             msg_list.Add(m);
+            //Skeleton.LogLine("**！！！" + msg+ "**");
         }
         return m.id;
     }
