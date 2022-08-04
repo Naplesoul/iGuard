@@ -37,6 +37,13 @@ public class WebPack_Vector3{
     public float z;
     public float score;
 }
+[System.Serializable]
+public class WebPack_Body_Metrics{
+    public float arm_width;
+    public float head_width;
+    public float leg_width;
+    public float torso_width;
+}
 
 [System.Serializable]
 public class WebPack_NodeInfo{
@@ -44,6 +51,8 @@ public class WebPack_NodeInfo{
     public float carriage_x;
     public float carriage_z;
     public bool running;
+
+    public WebPack_Body_Metrics body_metrics;
     
     public WebPack_Vector3[] body_nodes;
     public WebPack_Vector3[] left_hand_nodes;
@@ -55,12 +64,14 @@ public class Skeleton : MonoBehaviour
     private static string ip = "0.0.0.0";
     private static int port = 50002;
     private static Socket socket;
+    static public StreamWriter log_file;
 
     public static float sim;
 
     private GameObject[] body_nodes;
     private GameObject[] body_bones;
     public GameObject head, shouder, body, hip, waist;
+    private WebPack_Body_Metrics bm = new WebPack_Body_Metrics();
 
     private GameObject[] lh_nodes;
     private GameObject[] lh_bones;
@@ -125,10 +136,12 @@ public class Skeleton : MonoBehaviour
 
     public bool ext;
 
+
     // Start is called before the first frame update
     void Start()
     {
         Screen.SetResolution(2560, 1440, true, 60);
+        log_file = new StreamWriter("./log.md");
 
         body_nodes = new GameObject[19];
         lh_nodes = new GameObject[21];
@@ -253,6 +266,7 @@ public class Skeleton : MonoBehaviour
         threadReceive.Start();
 
         Debug.Log("skeleton server initialized successfully!");
+        LogLine("**iGuard Start**");
     }
 
     // Update is called once per frame
@@ -267,9 +281,11 @@ public class Skeleton : MonoBehaviour
                     if (i <= 1){
                         body_nodes[i].transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
                     }else if (i >= 13){
-                        body_nodes[i].transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                        //body_nodes[i].transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                        body_nodes[i].transform.localScale = new Vector3(bm.leg_width / 1000, bm.leg_width / 1000, bm.leg_width / 1000);
                     }else {
-                        body_nodes[i].transform.localScale = new Vector3(0.08f, 0.08f, 0.08f);
+                        //body_nodes[i].transform.localScale = new Vector3(0.07f, 0.07f, 0.07f);
+                        body_nodes[i].transform.localScale = new Vector3(bm.arm_width / 1000, bm.arm_width / 1000, bm.arm_width / 1000);
                     }
                 }else {
                     body_nodes[i].transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
@@ -318,9 +334,11 @@ public class Skeleton : MonoBehaviour
             body_bones[i].transform.localRotation = Quaternion.LookRotation(forward, upward);
             if (ext){
                 if (i >= 12){
-                    body_bones[i].transform.localScale = new Vector3(0.13f, upward.magnitude / 2, 0.13f);
+                    //body_bones[i].transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+                    body_bones[i].transform.localScale = new Vector3(bm.leg_width / 1000, upward.magnitude / 2, bm.leg_width / 1000);
                 }else{
-                    body_bones[i].transform.localScale = new Vector3(0.07f, upward.magnitude / 2, 0.07f);
+                    //body_bones[i].transform.localScale = new Vector3(0.07f, 0.07f, 0.07f);
+                    body_bones[i].transform.localScale = new Vector3(bm.arm_width / 1000, upward.magnitude / 2, bm.arm_width / 1000);
                 }
             }else{
                 body_bones[i].transform.localScale = new Vector3(0.02f, upward.magnitude / 2, 0.02f);
@@ -328,22 +346,21 @@ public class Skeleton : MonoBehaviour
         }
 
         //new model test
-        head.SetActive(ext);
-        shouder.SetActive(ext);
-        waist.SetActive(ext);
-        hip.SetActive(ext);
-        body.SetActive(ext);
         if (ext){
             if (body_boneActive[0]){
                 Vector3 a0 = body_nodePos[0], b0 = body_nodePos[1];
+                head.SetActive(ext);
                 head.transform.localPosition = (a0 + b0) / 2;
-                head.transform.localScale = new Vector3((a0 - b0).magnitude + 0.02f, (a0 - b0).magnitude + 0.04f, (a0 - b0).magnitude + 0.02f);
+                //head.transform.localScale = new Vector3((a0 - b0).magnitude + 0.02f, (a0 - b0).magnitude + 0.04f, (a0 - b0).magnitude + 0.02f);
+                head.transform.localScale = new Vector3(bm.head_width / 1000, bm.head_width / 1000 + 0.02f, bm.head_width / 1000);
             }
             if (body_boneActive[2]){
                 Vector3 a2 = body_nodePos[4], b2 = body_nodePos[2];
                 Vector3 _a2 = body_nodePos[9], _b2 = body_nodePos[5];
                 shouder.transform.localPosition = (_a2 + _b2) / 2;
                 body.transform.localPosition = (a2 + b2) / 2;
+                shouder.SetActive(ext);
+                body.SetActive(ext);
                 shouder.transform.localRotation = Quaternion.LookRotation((_a2 - _b2), (a2 - b2));
                 shouder.transform.localScale = new Vector3(0.22f, 0.06f, (_a2 - _b2).magnitude);
                 body.transform.localRotation = Quaternion.LookRotation((_a2 - _b2), (a2 - b2));
@@ -354,11 +371,21 @@ public class Skeleton : MonoBehaviour
                 Vector3 _a3 = body_nodePos[16], _b3 = body_nodePos[13];
                 hip.transform.localPosition = (_a3 + _b3) / 2;
                 waist.transform.localPosition = b3;
+                waist.SetActive(ext);
+                hip.SetActive(ext);
                 hip.transform.localRotation = Quaternion.LookRotation((_a3 - _b3), (a3 - b3));
-                hip.transform.localScale = new Vector3(0.22f, 0.06f, (_a3 - _b3).magnitude + 0.16f);
+                //hip.transform.localScale = new Vector3(0.22f, 0.06f, (_a3 - _b3).magnitude + 0.16f);
+                hip.transform.localScale = new Vector3(0.22f, 0.06f, bm.torso_width + 0.1f);
                 waist.transform.localRotation = Quaternion.LookRotation((_a3 - _b3), (a3 - b3));
-                waist.transform.localScale = new Vector3(0.19f, (a3 - b3).magnitude / 1.1f, (_a3 - _b3).magnitude + 0.06f);
+                //waist.transform.localScale = new Vector3(0.19f, (a3 - b3).magnitude / 1.1f, (_a3 - _b3).magnitude + 0.06f);
+                waist.transform.localScale = new Vector3(0.19f, (a3 - b3).magnitude / 1.1f, bm.torso_width);
             }
+        }else {
+            head.SetActive(ext);
+            shouder.SetActive(ext);
+            body.SetActive(ext);
+            waist.SetActive(ext);
+            hip.SetActive(ext);
         }
 
         for (int i = 0; i < 21 ;i ++){
@@ -409,6 +436,7 @@ public class Skeleton : MonoBehaviour
                     int ret = Alert.updateAlertMsg(keyAlertId, "动作不规范：\n" + keyPoseList[currKeyPoseIndex].pose, 25);
                     if (ret != keyAlertId){
                         keyAlertId = ret;
+                        LogLine("**！！！动作不规范：" + keyPoseList[currKeyPoseIndex].pose + "**");
                     }
                 }else{
                     Alert.removeAlertMsg(keyAlertId);
@@ -430,6 +458,7 @@ public class Skeleton : MonoBehaviour
                         int ret = Alert.updateAlertMsg(ppe_gloveAlertId, "请立即摘下手套！", 110);
                         if (ret != ppe_gloveAlertId){
                             ppe_gloveAlertId = ret;
+                            LogLine("**！！！佩戴手套**");
                         }
                     }else{
                         glove_left.transform.localPosition = new Vector3(1.65f, 1.24f, 0.7f);
@@ -449,6 +478,7 @@ public class Skeleton : MonoBehaviour
                         int ret = Alert.updateAlertMsg(ppe_goggleAlertId, "是否佩戴护目镜？", 101);
                         if (ret != ppe_goggleAlertId){
                             ppe_goggleAlertId = ret;
+                            LogLine("**！！！未佩戴护目镜**");
                         }
                     }
                 }else if (keyPoseList[currKeyPoseIndex].pose.Contains("工作帽")){
@@ -462,6 +492,7 @@ public class Skeleton : MonoBehaviour
                         int ret = Alert.updateAlertMsg(ppe_helmetAlertId, "是否佩戴工作帽？", 101);
                         if (ret != ppe_helmetAlertId){
                             ppe_helmetAlertId = ret;
+                            LogLine("**！！！未佩戴工作帽**");
                         }
                     }
                 }
@@ -478,6 +509,7 @@ public class Skeleton : MonoBehaviour
                         int ret = Alert.updateAlertMsg(keyAlertId, "遗漏重要步骤：\n" + keyPoseList[currKeyPoseIndex].pose, 35);
                         if (ret != keyAlertId){
                             keyAlertId = ret;
+                            LogLine("**！！！遗漏了重要步骤：" + keyPoseList[currKeyPoseIndex].pose + "**");
                         }
                     }
                 }
@@ -546,6 +578,15 @@ public class Skeleton : MonoBehaviour
         timeText.text = string.Format("{0:T}", DateTime.Now);
     }
 
+    private void OnApplicationQuit() {
+        LogLine("**iGuard Quit**");
+        log_file.Close();
+    }
+
+    static public void LogLine(string l){
+        log_file.WriteLine("[" + string.Format("{0:T}", DateTime.Now)+ "] " + l);
+    }
+
     private float GetSimilarity(KeyPack_NodeInfo kn){
         //Debug.Log("sim: " + kn.type + kn.pose);
         float s;
@@ -612,6 +653,8 @@ public class Skeleton : MonoBehaviour
     private void NextKeyPos(){
         if (currKeyPoseIndex >= 0){
             OKMsg.addAlertMsg("已完成：" + keyPoseList[currKeyPoseIndex].pose);
+            DangerCol.SendMsg("G");
+            LogLine("**Pass CheckPoint: " + keyPoseList[currKeyPoseIndex].pose + "**");
         }
         currKeyPoseIndex ++;
         if (currKeyPoseIndex < keyPoseList.Length){
@@ -793,6 +836,8 @@ public class Skeleton : MonoBehaviour
             LatheStatus.carriage_z = ni.carriage_z / 100;
             machine_running = ni.running;
 
+            bm = ni.body_metrics;
+
             // if (last_frame_id != -1){
             //     for (int i = 0; i < 19 ;i ++){
             //         prePose[i].x = (body_nodePos[i].x - body_lastNodePos[i].x) < 0.1 ? (2 * body_nodePos[i].x - body_lastNodePos[i].x) : body_lastNodePos[i].x;
@@ -924,9 +969,11 @@ public class Skeleton : MonoBehaviour
         LoadKeyPos();
         currKeyPoseIndex = -1;
         NextKeyPos();
+        LogLine("**插入了操作步骤: " + keyPoseList[selectIndex].pose + "**");
     }
     public void DelKey(){
         Debug.Log("delete: " + selectIndex);
+        LogLine("**删除了操作步骤: " + keyPoseList[selectIndex].pose + "**");
         int len = keyPoseNameList.Length;
         string[] new_name_list = new string[len - 1];
         int j = 0;
