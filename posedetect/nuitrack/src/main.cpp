@@ -20,11 +20,9 @@
 using namespace tdv::nuitrack;
 
 bool interrupted = false;
-UserFrame::Ptr userFrame = nullptr;
 UDPClient *colorFrameClient = nullptr;
 SkeletonClient *skeletonClient = nullptr;
 
-int64_t userTrackerHandler = -1;
 ColorSensor::Ptr colorSensor = nullptr;
 UserTracker::Ptr userTracker = nullptr;
 SkeletonTracker::Ptr skeletonTracker = nullptr;
@@ -32,6 +30,7 @@ SkeletonTracker::Ptr skeletonTracker = nullptr;
 int fps = 10;
 uint64_t frameId = 0;
 std::mutex mtx;
+bool enableBodyScan = false;
 std::chrono::nanoseconds offset(0);
 std::chrono::nanoseconds frameTime(0);
 const std::chrono::system_clock::time_point firstFrameTime = stringToDateTime("2022-07-15 00::00::00");
@@ -44,15 +43,13 @@ void signalHandler(int signal)
 
 void feedback(int64_t _offset, bool body_scan)
 {
-    printf("Update offset %ld\n", _offset);
+    printf("Feedback: offset %ld, body_scan %d\n", _offset, body_scan);
     mtx.lock();
     offset += std::chrono::nanoseconds(_offset * 1000000);
-    mtx.unlock();
-
-    if (userTrackerHandler >= 0 && !body_scan) {
-        userTracker->disconnectOnUpdate(userTrackerHandler);
-        userTrackerHandler = -1;
+    if (enableBodyScan && !body_scan) {
+        enableBodyScan = false;
     }
+    mtx.unlock();
 }
 
 uint64_t waitUntilNextFrame()
@@ -104,16 +101,10 @@ void onColorUpdate(RGBFrame::Ptr frame)
     colorFrameClient->sendToServer(imageData.data(), imageData.size());
 }
 
-void onUserUpdate(UserFrame::Ptr frame)
-{
-    printf("User Tracker Update\n");
-    if (frameId % 5 != 0) return;
-    userFrame = frame;
-}
-
 // @Param widthOrient: 0 for horizontal, 1 for vertical
 float measureWidth(const Joint &joint, int widthOrient, float scale)
 {
+    UserFrame::Ptr userFrame = userTracker->getUserFrame();
     int w = userFrame->getCols();
     int h = userFrame->getRows();
 
@@ -187,6 +178,7 @@ BodyMetrics scanBody(const Skeleton &skeleton)
         .torsoWidth = torsoWidth
     };
 
+    // UserFrame::Ptr userFrame = userTracker->getUserFrame();
     // const int MAX_LABELS = 8;
 	// static uint8_t colors[MAX_LABELS][3] =
 	// {
@@ -248,7 +240,11 @@ void onSkeletonUpdate(SkeletonData::Ptr skeletonData)
         return;
     }
 
-    if (userTrackerHandler >= 0 && frameId % 5 == 0) {
+    mtx.lock();
+    bool scanBodyEnabled = enableBodyScan;
+    mtx.unlock();
+
+    if (scanBodyEnabled && frameId % 5 == 0) {
         skeletonClient->sendSkeletonAndMetrics(frameId, userSkeletons[0], scanBody(userSkeletons[0]));
     } else {
         skeletonClient->sendSkeleton(frameId, userSkeletons[0]);
@@ -328,12 +324,11 @@ int main(int argc, char* argv[])
         }
 
         if (!config["scan_body"].empty() && config["scan_body"].asBool()) {
+            enableBodyScan = true;
             userTracker = UserTracker::create();
-            userTrackerHandler = userTracker->connectOnUpdate(onUserUpdate);
         }
 
-        // Create SkeletonTracker module, other required modules will be
-        // created automatically
+        // Create SkeletonTracker module, other required modules will be created automatically
         skeletonTracker = SkeletonTracker::create();
 
         // Connect onHandUpdate callback to receive hand tracking data
@@ -361,6 +356,13 @@ int main(int argc, char* argv[])
             auto end = std::chrono::system_clock::now();
             std::chrono::nanoseconds process_time(end - begin);
             printf("Process Time: %ldus\n\n\n", std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count());
+
+            mtx.lock();
+            bool scanBodyEnabled = enableBodyScan;
+            mtx.unlock();
+            if (userTracker != nullptr && !scanBodyEnabled) {
+                userTracker = nullptr;
+            }
         }
     }
     catch (LicenseNotAcquiredException& e)

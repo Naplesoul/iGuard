@@ -21,7 +21,6 @@ struct BodyMetrics
     int torsoWidth = 0;
 };
 
-
 class UDPClient
 {
 protected:

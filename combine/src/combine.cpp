@@ -18,6 +18,35 @@ std::chrono::system_clock::time_point stringToDateTime(const std::string &s)
 
 static const std::chrono::system_clock::time_point firstFrameTime = stringToDateTime("2022-07-15 00::00::00");
 
+bool BodyMetrics::update(const Json::Value &bodyMsg)
+{
+    if (bodyMsg["body_metrics"].empty()) {
+        return false;
+    }
+
+    const Json::Value &metrics = bodyMsg["body_metrics"];
+    int _armWidth = metrics["arm_width"].asInt();
+	int _legWidth = metrics["leg_width"].asInt();
+	int _headWidth = metrics["head_width"].asInt();
+	int _torsoWidth = metrics["torso_width"].asInt();
+
+    if (_armWidth > 50 && _armWidth < 200 &&
+        _legWidth > 80 && _legWidth < 300 &&
+        _headWidth > 120 && _headWidth < 300 &&
+        _torsoWidth > 250 && _torsoWidth < 600) {
+        
+        armWidth = _armWidth;
+        legWidth = _legWidth;
+        headWidth = _headWidth;
+        torsoWidth = _torsoWidth;
+
+        json = metrics;
+        return true;
+    }
+
+    return false;
+}
+
 Skeleton::Skeleton()
 {
     bodyNodes.resize(19);
@@ -199,9 +228,17 @@ void Combine::mainCameraRecv(const struct sockaddr_in &clientAddr, const Json::V
     }
 
     skeleton.updateMain(payload);
+    if (enableBodyScan && frameId > firstFrameId + 50) {
+        enableBodyScan = !bodyMetrics.update(payload);
+    }
     mainFrameId = frameId;
     if (frameId % 16 == 0) {
-        std::string feedback = "{\"offset\":" + std::to_string(avgMainDiff) +"}";
+        std::string feedback = "{\"offset\":" + std::to_string(avgMainDiff);
+        if (enableBodyScan) {
+            feedback += ",\"body_scan\":true}";
+        } else {
+            feedback += ",\"body_scan\":false}";
+        }
         sendto(sockfd, feedback.data(), feedback.length(), 0, (struct sockaddr*)&clientAddr, addrLen);
         avgMainDiff = 0;
     }
@@ -222,9 +259,17 @@ void Combine::minorCameraRecv(const struct sockaddr_in &clientAddr, const Json::
     }
     
     skeleton.updateMinor(payload);
+    if (enableBodyScan && frameId > firstFrameId + 50) {
+        enableBodyScan = !bodyMetrics.update(payload);
+    }
     minorFrameId = frameId;
     if (frameId % 16 == 0) {
-        std::string feedback = "{\"offset\":" + std::to_string(avgMinorDiff) +"}";
+        std::string feedback = "{\"offset\":" + std::to_string(avgMinorDiff);
+        if (enableBodyScan) {
+            feedback += ",\"body_scan\":true}";
+        } else {
+            feedback += ",\"body_scan\":false}";
+        }
         sendto(sockfd, feedback.data(), feedback.length(), 0, (struct sockaddr*)&clientAddr, addrLen);
         avgMinorDiff = 0;
     }
@@ -245,6 +290,9 @@ void Combine::handCameraRecv(const struct sockaddr_in &clientAddr, const Json::V
     }
 
     skeleton.updateHands(payload);
+    if (enableBodyScan && frameId > firstFrameId + 50) {
+        enableBodyScan = !bodyMetrics.update(payload);
+    }
 
     machineState.running = payload["running"].asBool();
     machineState.carriageX = payload["carriage_x"].asInt();
@@ -252,7 +300,12 @@ void Combine::handCameraRecv(const struct sockaddr_in &clientAddr, const Json::V
 
     handFrameId = frameId;
     if (frameId % 16 == 0) {
-        std::string feedback = "{\"offset\":" + std::to_string(avgHandDiff) +"}";
+        std::string feedback = "{\"offset\":" + std::to_string(avgHandDiff);
+        if (enableBodyScan) {
+            feedback += ",\"body_scan\":true}";
+        } else {
+            feedback += ",\"body_scan\":false}";
+        }
         sendto(sockfd, feedback.data(), feedback.length(), 0, (struct sockaddr*)&clientAddr, addrLen);
         avgHandDiff = 0;
     }
@@ -327,6 +380,9 @@ void Combine::sendToGuiClient()
     payload["running"] = machineState.running;
     payload["carriage_x"] = machineState.carriageX;
     payload["carriage_z"] = machineState.carriageZ;
+    if (!enableBodyScan) {
+        payload["body_metrics"] = bodyMetrics.json;
+    }
 
 	payload["frame_id"] = Json::Value::Int64(mainFrameId);
     
@@ -363,6 +419,9 @@ void Combine::send()
     if (mainFrameId != minorFrameId || minorFrameId != handFrameId) {
         // printf("%ld %ld %ld\n", mainCameraId, minorCameraId, handCameraId);
         return;
+    }
+    if (firstFrameId < 0) {
+        firstFrameId = mainFrameId;
     }
 	sendToGuiClient();
     sendToSimClient();

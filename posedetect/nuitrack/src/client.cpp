@@ -166,7 +166,7 @@ void SkeletonClient::sendSkeletonAndMetrics(uint64_t frameId, const tdv::nuitrac
 	payload["camera_id"] = cameraId;
 	payload["frame_id"] = Json::Value::Int64(frameId);
 	payload["body_nodes"] = bodyNodes;
-	payload["body_metircs"] = metrics;
+	payload["body_metrics"] = metrics;
 
 	std::cout << payload.toStyledString();
 	std::string jsonStr = writer.write(payload);
