@@ -6,6 +6,7 @@ import threading
 
 
 def receiveMessage():
+    global alert
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("0.0.0.0", 40790))
     while True:
@@ -20,9 +21,11 @@ def receiveMessage():
         elif msg_str[0] == " ":
             for level in dl_list:
                 dl_list[level] = 0
-        elif msg_str[0] == "Y":
+        elif msg_str[0] == "Y" and not alert:
+            alert = True
             ser.write("Y".encode())
-        elif msg_str[0] == "y":
+        elif msg_str[0] == "y" and alert:
+            alert = False
             ser.write("y".encode())
         elif msg_str[0] == "G":
             ser.write("G".encode())
@@ -30,6 +33,7 @@ def receiveMessage():
 
 portx="/dev/ttyACM0"
 dl_list = {"F": 0, "E": 0, "D": 0, "C": 0, "B": 0, "A": 0}
+alert = False
 lock = threading.Lock()
 
 ser = serial.Serial(portx, 9600, timeout=1, parity=serial.PARITY_NONE)
