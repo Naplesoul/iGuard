@@ -74,22 +74,11 @@ void onColorUpdate(RGBFrame::Ptr frame)
     printf("Color Frame Update\n");
     if (frameId % 5 != 0) return;
 
-    const tdv::nuitrack::Color3 *colorPtr = frame->getData();
     int w = frame->getCols();
     int h = frame->getRows();
 
-    cv::Mat bgrFrame(h, w, CV_8UC3);
+    cv::Mat bgrFrame(h, w, CV_8UC3, (unsigned char *)frame->getData());
 
-    for (int row = 0; row < h; ++row) {
-        for (int col = 0; col < w; ++col) {
-            const tdv::nuitrack::Color3 *color = colorPtr + row * w + col;
-            cv::Vec3b pixel;
-            pixel[0] = color->blue;
-            pixel[1] = color->green;
-            pixel[2] = color->red;
-            bgrFrame.at<cv::Vec3b>(row, col) = pixel;
-        }
-    }
     // cv::imwrite("frame.png", bgrFrame);
     cv::resize(bgrFrame, bgrFrame, cv::Size(800, 450));
     int quality = 40; //压缩比率0～100
