@@ -23,10 +23,10 @@ def receiveMessage():
                 dl_list[level] = 0
         elif msg_str[0] == "Y" and not alert:
             alert = True
-            ser.write("Y".encode())
+            # ser.write("Y".encode())
         elif msg_str[0] == "y" and alert:
             alert = False
-            ser.write("y".encode())
+            # ser.write("y".encode())
         elif msg_str[0] == "G":
             ser.write("G".encode())
         lock.release()
@@ -45,6 +45,7 @@ thread1 = threading.Thread(name='t1',target= receiveMessage, args=())
 thread1.start()
 
 last_dl = " "
+last_alert = False
 while True:
     time.sleep(0.1)
     flag = False
@@ -61,4 +62,10 @@ while True:
         print("send:  ")
         ser.write(" ".encode())
         last_dl = " "
+    if alert != last_alert:
+        last_alert = alert
+        if alert:
+            ser.write("Y".encode())
+        else:
+            ser.write("y".encode())
     lock.release()
