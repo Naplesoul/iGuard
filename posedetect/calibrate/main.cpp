@@ -1,7 +1,5 @@
 #include <opencv2/opencv.hpp>
 #include <jsoncpp/json/json.h>
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/LU>
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/registration.h>
@@ -11,6 +9,9 @@
 #include <fstream>
 #include <iostream>
 #include <signal.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
 
 cv::Scalar redMin(0, 160, 100);
 cv::Scalar redMax(250, 250, 250);
@@ -30,27 +31,17 @@ void signalHandler(int signal)
 
 int main(int argc, char* argv[])
 {
-    printf("Usage: calibrate [path/to/config.json]\n");
-
-    if (argc < 2) {
-        std::cerr << "missing config json\n";
-        exit(-1);
-    }
     signal(SIGINT, &signalHandler);
 
-    Json::Value config;
-    Json::Reader reader;
-    std::fstream file(argv[1]);
-    reader.parse(file, config);
-    file.close();
+    struct sockaddr_in serverAddr;
+    serverAddr.sin_family = AF_INET;
+	serverAddr.sin_port = htons(50008);
+	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    int addrLen = sizeof(struct sockaddr_in);
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
-    Eigen::Matrix4f real;
-    real << config["A"][0].asFloat(), config["B"][0].asFloat(), config["C"][0].asFloat(), config["D"][0].asFloat(),
-            config["A"][1].asFloat(), config["B"][1].asFloat(), config["C"][1].asFloat(), config["D"][1].asFloat(),
-            config["A"][2].asFloat(), config["B"][2].asFloat(), config["C"][2].asFloat(), config["D"][2].asFloat(),
-            1, 1, 1, 1;
-    
-    std::cout << "real:\n" << real << "\n";
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    Json::FastWriter writer;
 
     libfreenect2::Freenect2 freenect2;
     libfreenect2::Freenect2Device *dev = 0;
@@ -121,7 +112,7 @@ int main(int argc, char* argv[])
                 registration->getPointXYZ(&undistorted, anchors[i].center.y, anchors[i].center.x, xi, yi, zi);
                 registration->getPointXYZ(&undistorted, anchors[j].center.y, anchors[j].center.x, xj, yj, zj);
                 float dist = sqrt(pow((xi - xj), 2) + pow((yi - yj), 2) + pow((zi - zj), 2));
-                printf("(%.2f, %.2f, %.2f), (%.2f, %.2f, %.2f), %.2f\n", xi, yi, zi, xj, yj, zj, dist);
+                // printf("(%.2f, %.2f, %.2f), (%.2f, %.2f, %.2f), %.2f\n", xi, yi, zi, xj, yj, zj, dist);
                 Edge edge{.s = i, .d = j, .length = dist};
                 edges.push_back(edge);
                 graph[i].push_back(edge);
@@ -153,22 +144,43 @@ int main(int argc, char* argv[])
             idxC = *remain.begin();
         }
 
+        printf("idx: %d, %d, %d, %d\n", idxA, idxB, idxC, idxD);
         float xa, ya, za, xb, yb, zb, xc, yc, zc, xd, yd, zd;
         registration->getPointXYZ(&undistorted, anchors[idxA].center.y, anchors[idxA].center.x, xa, ya, za);
         registration->getPointXYZ(&undistorted, anchors[idxB].center.y, anchors[idxB].center.x, xb, yb, zb);
         registration->getPointXYZ(&undistorted, anchors[idxC].center.y, anchors[idxC].center.x, xc, yc, zc);
         registration->getPointXYZ(&undistorted, anchors[idxD].center.y, anchors[idxD].center.x, xd, yd, zd);
 
-        Eigen::Matrix4f cam, M_inv;
-        cam <<  -xa * 1000, -xb * 1000, -xc * 1000, -xd * 1000,
-                -ya * 1000, -yb * 1000, -yc * 1000, -yd * 1000,
-                za * 1000, zb * 1000, zc * 1000, zd * 1000,
-                1, 1, 1, 1;
-        
-        M_inv = real * cam.inverse();
-        std::cout << M_inv << "\n\n";
-        break;
+        Json::Value cam;
+        Json::Value x, y, z, one;
+        x.append(-xa * 1000);
+        x.append(-xb * 1000);
+        x.append(-xc * 1000);
+        x.append(-xd * 1000);
 
+        y.append(-ya * 1000);
+        y.append(-yb * 1000);
+        y.append(-yc * 1000);
+        y.append(-yd * 1000);
+
+        z.append(za * 1000);
+        z.append(zb * 1000);
+        z.append(zc * 1000);
+        z.append(zd * 1000);
+
+        one.append(1);
+        one.append(1);
+        one.append(1);
+        one.append(1);
+
+        cam.append(x);
+        cam.append(y);
+        cam.append(z);
+        cam.append(one);
+
+        std::string str = writer.write(cam);
+        int i = sendto(sockfd, str.data(), str.length(), 0, (struct sockaddr*)&serverAddr, addrLen);
+        std::cout << "cam:\n" << cam << "\n\n";
         listener.release(frames);
     }
 
