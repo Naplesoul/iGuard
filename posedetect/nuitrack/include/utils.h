@@ -1,5 +1,6 @@
 #pragma once
 
+#include <math.h>
 #include <chrono>
 #include <string>
 #include <sstream>
@@ -46,4 +47,10 @@ Eigen::Matrix4f convertMatrix(const Json::Value &config)
     Eigen::Matrix4f M_inv = T_inv * R4_inv;
 
     return M_inv;
+}
+
+double getDistance(int x, int y, int z)
+{
+    int sum = x * x + y * y + z * z;
+    return sqrt(sum);
 }

@@ -10,6 +10,16 @@
 
 #include <jsoncpp/json/json.h>
 
+struct BodyMetrics
+{
+    int armWidth = 0;
+    int legWidth = 0;
+    int headWidth = 0;
+    int torsoWidth = 0;
+    Json::Value json;
+    bool update(const Json::Value &body);
+};
+
 struct Node
 {
     int x, y, z, score;
@@ -50,11 +60,14 @@ private:
     int minorCameraId = 2;
     int handCameraId = 3;
 
+    int64_t firstFrameId = -1;
     int64_t mainFrameId = 0;
     int64_t minorFrameId = 0;
     int64_t handFrameId = 0;
     Skeleton skeleton;
     MachineState machineState;
+    bool enableBodyScan = true;
+    BodyMetrics bodyMetrics;
 
     int sockfd;
     const int addrLen = sizeof(struct sockaddr_in);

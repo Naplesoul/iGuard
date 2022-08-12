@@ -8,5 +8,6 @@
     "camera_position": [0, 0, 0],
     "camera_direction_x": [-1, 0, 0],
     "camera_direction_y": [0, 1, 0],
-    "camera_direction_z": [0, 0, -1]
+    "camera_direction_z": [0, 0, -1],
+    "scan_body": true
 }

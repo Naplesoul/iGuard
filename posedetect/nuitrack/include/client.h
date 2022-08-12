@@ -13,6 +13,14 @@
 #include <eigen3/Eigen/Core>
 #include <jsoncpp/json/json.h>
 
+struct BodyMetrics
+{
+    int armWidth = 0;
+    int legWidth = 0;
+    int headWidth = 0;
+    int torsoWidth = 0;
+};
+
 class UDPClient
 {
 protected:
@@ -34,15 +42,16 @@ private:
     Json::Reader reader;
     Json::FastWriter writer;
 
-    void (*updateOffset)(int64_t);
+    void (*feedback)(int64_t, bool);
     std::thread feedbackThread;
     void pollFeedback();
 
 public:
     void sendEmpty(uint64_t frameId);
-    void sendSkeleton(uint64_t frameId, const tdv::nuitrack::Skeleton &newSkeleton);
+    void sendSkeleton(uint64_t frameId, const tdv::nuitrack::Skeleton &skeleton);
+    void sendSkeletonAndMetrics(uint64_t frameId, const tdv::nuitrack::Skeleton &skeleton, const BodyMetrics &bodyMetrics);
 
     SkeletonClient(const std::string &addr, uint16_t port, int cameraId,
-                 void updateOffset(int64_t), Eigen::Matrix4f M_inv);
+                 void feedback(int64_t, bool), Eigen::Matrix4f M_inv);
     ~SkeletonClient();
 };
