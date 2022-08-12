@@ -49,11 +49,11 @@ public class Alert : MonoBehaviour
                             alertText.text = msg.text;
                         }
                     }
-                    DangerCol.SendMsg("Y");
+                    DangerCol.SendMsg("YY");
                 }else{
                     alertPanel.SetActive(false);
                     alertText.text = "";
-                    DangerCol.SendMsg("y");
+                    DangerCol.SendMsg("yy");
                 }
                 needUpdate = false;
             }

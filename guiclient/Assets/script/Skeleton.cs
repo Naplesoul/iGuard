@@ -352,7 +352,7 @@ public class Skeleton : MonoBehaviour
                 head.SetActive(ext);
                 head.transform.localPosition = (a0 + b0) / 2;
                 //head.transform.localScale = new Vector3((a0 - b0).magnitude + 0.02f, (a0 - b0).magnitude + 0.04f, (a0 - b0).magnitude + 0.02f);
-                head.transform.localScale = new Vector3(bm.head_width / 1000, bm.head_width / 1000 + 0.02f, bm.head_width / 1000);
+                head.transform.localScale = new Vector3(bm.head_width / 1000, bm.head_width / 1000 + 0.06f, bm.head_width / 1000);
             }
             if (body_boneActive[2]){
                 Vector3 a2 = body_nodePos[4], b2 = body_nodePos[2];
@@ -362,9 +362,9 @@ public class Skeleton : MonoBehaviour
                 shouder.SetActive(ext);
                 body.SetActive(ext);
                 shouder.transform.localRotation = Quaternion.LookRotation((_a2 - _b2), (a2 - b2));
-                shouder.transform.localScale = new Vector3(0.22f, 0.06f, (_a2 - _b2).magnitude);
+                shouder.transform.localScale = new Vector3(0.22f, 0.06f, (_a2 - _b2).magnitude+0.04f);
                 body.transform.localRotation = Quaternion.LookRotation((_a2 - _b2), (a2 - b2));
-                body.transform.localScale = new Vector3(0.2f, (a2 - b2).magnitude / 2, (_a2 - _b2).magnitude - 0.06f);
+                body.transform.localScale = new Vector3(0.2f, (a2 - b2).magnitude / 2, (_a2 - _b2).magnitude - 0.02f);
             }
             if (body_boneActive[3]){
                 Vector3 a3 = body_nodePos[2], b3 = body_nodePos[3];
@@ -375,10 +375,10 @@ public class Skeleton : MonoBehaviour
                 hip.SetActive(ext);
                 hip.transform.localRotation = Quaternion.LookRotation((_a3 - _b3), (a3 - b3));
                 //hip.transform.localScale = new Vector3(0.22f, 0.06f, (_a3 - _b3).magnitude + 0.16f);
-                hip.transform.localScale = new Vector3(0.22f, 0.06f, bm.torso_width + 0.1f);
+                hip.transform.localScale = new Vector3(0.22f, 0.06f, bm.torso_width / 1000 - 0.01f);
                 waist.transform.localRotation = Quaternion.LookRotation((_a3 - _b3), (a3 - b3));
                 //waist.transform.localScale = new Vector3(0.19f, (a3 - b3).magnitude / 1.1f, (_a3 - _b3).magnitude + 0.06f);
-                waist.transform.localScale = new Vector3(0.19f, (a3 - b3).magnitude / 1.1f, bm.torso_width);
+                waist.transform.localScale = new Vector3(0.19f, (a3 - b3).magnitude / 1.1f, bm.torso_width / 1000 - 0.02f);
             }
         }else {
             head.SetActive(ext);
@@ -517,10 +517,10 @@ public class Skeleton : MonoBehaviour
         }
 
         if (ppe_goggleAlertId == -1){
-            goggle.transform.localPosition = body_nodePos[0];
+            goggle.transform.localPosition = body_nodePos[0] + new Vector3(0, -0.015f, 0);
         }
         if (ppe_helmetAlertId == -1){
-            helmet.transform.localPosition = body_nodePos[0] + new Vector3(0, 0.11f, 0);
+            helmet.transform.localPosition = body_nodePos[0] + new Vector3(0, 0.02f, 0);
         }
         if (ppe_gloveAlertId == -1){
             glove_left.transform.localPosition = new Vector3(1.65f, 1.24f, 0.7f);
@@ -653,7 +653,7 @@ public class Skeleton : MonoBehaviour
     private void NextKeyPos(){
         if (currKeyPoseIndex >= 0){
             OKMsg.addAlertMsg("已完成：" + keyPoseList[currKeyPoseIndex].pose);
-            DangerCol.SendMsg("G");
+            DangerCol.SendMsg("GG");
             LogLine("**Pass CheckPoint: " + keyPoseList[currKeyPoseIndex].pose + "**");
         }
         currKeyPoseIndex ++;
@@ -922,7 +922,7 @@ public class Skeleton : MonoBehaviour
         if (m == 0){
             camera_relative_pos = new Vector3(1.8f, -1.2f, 0.8f);
         }else if (m == 3){
-            camera_relative_pos = new Vector3(0f, -1.3f, 1.4f);
+            camera_relative_pos = new Vector3(0f, -1.2f, 1.4f);
         }else if (m == 2){
             camera_relative_pos = new Vector3(0f, -0.6f, -1.8f);
         }else {
